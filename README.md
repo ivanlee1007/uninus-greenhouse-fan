@@ -26,6 +26,14 @@ python tests/verify_card_browser.py
 
 The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, and manual command. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
 
+## HACS download
+
+Add `https://github.com/ivanlee1007/uninus-greenhouse-fan` as a HACS custom repository with category **Integration**. The root `hacs.json` describes a standard `custom_components/uninus_greenhouse_fan` source installation; no release ZIP is required.
+
+If HACS still selects the old `bbaee59` commit and reports **The version … can not be used with HACS**, refresh the repository information in HACS, reopen Download, and select the latest default-branch commit. That initial commit lacked `hacs.json`; refreshing cannot make the old commit installable. The integration manifest now also includes HACS-required `codeowners` and `issue_tracker` metadata.
+
+This fixes download packaging only; live HA compatibility and physical fan operation still require the safety checks below.
+
 ## Installation and safety gate
 
 Do **not** use this initial branch with production fan outputs. Before any installation: review the integration for the target HA version and permissions, verify config flow and Lovelace Add Card GUI in an isolated HA instance, then obtain explicit authorization for a staged live test. Once installed, bound outputs may be automatically controlled under the selected policy; leaving all fans unbound is fail-closed. No release tag, HACS installation, production configuration change, restart, dashboard write, or fan actuation has been performed in this repository work.
