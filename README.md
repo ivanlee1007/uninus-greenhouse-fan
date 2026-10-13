@@ -1,17 +1,31 @@
 # UNiNUS Greenhouse Fan
 
-A Home Assistant custom integration and Lovelace card implementing the user-approved **C 方案 · 逐欄自動排列 v8** design. **Development repository — not released, installed, or live-verified.** No Home Assistant system or fan has been modified by this repository work.
+Home Assistant custom integration and Lovelace card based on the approved **C 方案 · 逐欄自動排列 v8** design. **Development build only: not released, installed, or verified on a live Home Assistant instance.**
 
-## Approved interaction contract
+![720px card, four fans in a 2×2 grid](docs/assets/actual-card-720.png)
 
-- Collapsible global policy strip **above** the independent fan cards at every width; its collapsed view shows only temperature/humidity upper and lower thresholds.
-- Auto columns based on the card's own device-grid width; with four devices the grid can display 1, 2, 3+1, or 4 in a row. Fixed 1- or 2-column choices remain distinct.
-- Runtime card has per-device sensor readings and manual controls, not configuration forms.
-- Editor exposes a fan entity, display name, temperature entity, and humidity entity **for each displayed fan**.
-- Integration Options owns only shared thresholds and duration. The integration persists one authoritative per-fan sensor binding that both control and display read; the card editor explicitly applies a binding via a versioned WebSocket mutation. Ordinary Lovelace Save alone cannot commit backend mappings.
+## Implemented in this branch
 
-See [implementation contract](docs/CONTRACT.md). The approved offline design source and tests remain in `../uninus-greenhouse-fan-design/`; they are references, not deployed code.
+- A collapsible global policy strip stays **above** independent fan cards at every width; collapsed content shows the shared temperature and humidity on/off limits.
+- Grid auto-fit depends on the card's own width. Four items yield 1, 2, 3+1, then 4 in a row. Fixed one/two columns remain available. [1080px three-column screenshot](docs/assets/actual-card-1080.png).
+- Each card item has a fan output Entity (`fan.*` or relay `switch.*`), display name, temperature Entity, and humidity Entity. The last two are edited in the **card editor**, not in Integration Options.
+- A versioned authoritative binding registry is persisted per integration config entry. The editor's explicit **套用感測來源** action commits a binding through admin-only WebSocket; a Lovelace Save alone only changes display configuration. Conflicts retain the draft. Multiple cards read the same mapping.
+- Integration Options contains only shared temperature/humidity on/off thresholds and duration. A periodic controller enforces the same duration on every evaluation, handles unavailable readings fail-closed, and holds manual fan/switch mode across restarts until explicitly resumed.
+- The integration bundles and serves the card JavaScript. In Lovelace storage-resource mode it creates/updates its own module resource; YAML-resource mode requires manually declaring the logged module URL.
 
-## Status and safety
+See the [implementation contract](docs/CONTRACT.md) and [approved offline v8 design](docs/design/v8/SPEC-v8.md). The reference demo is **not** production code.
 
-The card and integration are under initial implementation. This repository is private and contains no tokens. There is no published release, HACS installation, HA deployment, restart, dashboard change, or test fan actuation. Do not install against production equipment before the code has passed integration/security review and an explicitly authorized staged physical-device test.
+## Local verification (no HA connection)
+
+```sh
+python -m unittest discover -s tests -p 'test_*.py' -v
+node --test tests/test_card.mjs
+# Requires Playwright and Chromium/Edge:
+python tests/verify_card_browser.py
+```
+
+The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, and manual command. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
+
+## Installation and safety gate
+
+Do **not** use this initial branch with production fan outputs. Before any installation: review the integration for the target HA version and permissions, verify config flow and Lovelace Add Card GUI in an isolated HA instance, then obtain explicit authorization for a staged live test. Once installed, bound outputs may be automatically controlled under the selected policy; leaving all fans unbound is fail-closed. No release tag, HACS installation, production configuration change, restart, dashboard write, or fan actuation has been performed in this repository work.

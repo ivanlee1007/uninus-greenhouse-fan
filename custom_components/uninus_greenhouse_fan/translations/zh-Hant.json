@@ -1,0 +1,4 @@
+{
+  "config": {"step": {"user": {"title": "溫室風扇控制群組", "description": "建立共用門檻；各風扇感測來源由卡片編輯器設定。", "data": {"name": "群組名稱", "temperature_on": "溫度高於此值啟動 (°C)", "temperature_off": "溫度低於或等於此值停止 (°C)", "humidity_on": "濕度高於此值啟動 (%)", "humidity_off": "濕度低於或等於此值停止 (%)", "duration_seconds": "條件持續秒數"}}}, "error": {"invalid_policy": "請檢查門檻上下限及持續秒數"}},
+  "options": {"step": {"init": {"title": "共用風扇門檻", "description": "逐台感測來源在卡片編輯器設定，此處不重複設定。", "data": {"temperature_on": "溫度高於此值啟動 (°C)", "temperature_off": "溫度低於或等於此值停止 (°C)", "humidity_on": "濕度高於此值啟動 (%)", "humidity_off": "濕度低於或等於此值停止 (%)", "duration_seconds": "條件持續秒數"}}}, "error": {"invalid_policy": "請檢查門檻上下限及持續秒數"}}
+}
