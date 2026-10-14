@@ -53,9 +53,9 @@ with sync_playwright() as p:
             assert result['fill']==('rgb(220, 91, 86)' if running else 'rgb(138, 148, 153)'),(theme,output,sensors,result)
             assert result['animation']==('running' if running else 'paused'),(theme,output,sensors,result)
             assert result['selector'] is False,result
-            assert result['enabled']==(output in ('on','off')),result
+            assert result['enabled']==(output in ('on','off','unknown')),result
             assert result['hubBorder']==('rgb(241, 155, 139)' if running else 'rgb(171, 181, 186)'),result
-            if output in ('missing','unknown','unavailable'):
+            if output in ('missing','unavailable'):
                 assert 'switch.uss_p130_f5_relay0' in result['reason'],result
                 assert page.locator('uninus-greenhouse-fan-card').last.locator('a[href="/config/integrations"]').count()==1
             if running:
@@ -65,6 +65,25 @@ with sync_playwright() as p:
                 page.emulate_media(reduced_motion='no-preference')
             visual_checks.append({'theme':theme,'output':output,'sensors':sensors,**result})
             page.evaluate('()=>visual.remove()')
+    # Explicit two-column layout must remain two columns on narrow cards.
+    fixed_geometry=[]
+    for theme in ('dark','light'):
+        for width in (390,500,520,630,720):
+            page.evaluate('(args)=>{const [w,theme]=args;card.style.width=w+"px";card.setConfig({...card.config,layout:"2",theme});card.hass=fakeHass}',[width,theme])
+            page.wait_for_function('card.snapshot && !card.loading')
+            geometry=page.evaluate('''()=>{const s=card.shadowRoot,items=[...s.querySelectorAll('.fan-item')],top=items[0].getBoundingClientRect().top;return {row:items.filter(x=>Math.abs(x.getBoundingClientRect().top-top)<2).length,columns:getComputedStyle(s.querySelector('.fans')).gridTemplateColumns,minWidths:items.map(x=>getComputedStyle(x).minWidth),overflow:[s.querySelector('.card'),...items,...s.querySelectorAll('.controls,.live-status,.device-hero,button[data-mode]')].map(x=>x.scrollWidth-x.clientWidth),buttons:[...s.querySelectorAll('button[data-mode]')].map(x=>{const r=x.getBoundingClientRect();return {w:r.width,h:r.height}})}}''')
+            assert geometry['row']==2,(width,theme,geometry)
+            assert len(geometry['columns'].split())==2,geometry
+            assert all(x=='0px' for x in geometry['minWidths']),geometry
+            assert max(geometry['overflow'])<=1,(width,theme,geometry)
+            assert all(x['h']>=44 and x['w']>=44 for x in geometry['buttons']),geometry
+            before=page.evaluate('()=>calls.filter(x=>x.type.endsWith("/manual")).length')
+            page.locator('uninus-greenhouse-fan-card').first.locator('button[data-mode="off"]').first.click()
+            page.wait_for_function('(n)=>calls.filter(x=>x.type.endsWith("/manual")).length===n+1 && !card.operation',arg=before)
+            fixed_geometry.append({'width':width,'theme':theme,**geometry})
+    page.evaluate('()=>{snap.runtime["fan.f1"].mode="auto";card.load()}')
+    page.evaluate('()=>{card.setConfig({...card.config,layout:"auto"});card.hass=fakeHass}')
+    page.wait_for_function('card.snapshot && !card.loading')
     measurements={}
     for width,expected in [(390,1),(720,2),(1080,3),(1380,4)]:
         page.evaluate('(w)=>card.style.width=w+"px"',width)
@@ -259,12 +278,13 @@ with sync_playwright() as p:
     page.evaluate('''() => {
       window.unboundCalls=[];
       const target='switch.uss_p130_f5_relay0';
-      window.manualSnap={entry_id:'group-1',revision:0,devices:[{device_id:'manual',name:'Manual only',fan_entity:target}],policy:snap.policy,bindings:{},runtime:{}};
+      window.manualSnap={entry_id:'01M4TJESXTB1DRBYG80VTF3SNG',revision:0,devices:[{device_id:'ee34fec4b5b45cc882181801bbd4e71a',name:'Manual only',fan_entity:target}],policy:snap.policy,bindings:{},runtime:{}};
       window.manualCard=document.createElement('uninus-greenhouse-fan-card');
       document.body.appendChild(manualCard);
-      manualCard.setConfig({entry_id:'group-1',items:[{fan_entity:target,name:'Manual-only relay'}]});
+      manualCard.style.width='500px';
+      manualCard.setConfig({entry_id:manualSnap.entry_id,layout:'2',items:[{device_id:'ee34fec4b5b45cc882181801bbd4e71a',fan_entity:target,name:'Manual-only relay'}]});
       manualCard.hass={states:{[target]:{state:'off',attributes:{}}},callWS:async msg=>{
-        if(msg.type.endsWith('/groups'))return [{entry_id:'group-1',name:'Mock group',loaded:true}];
+        if(msg.type.endsWith('/groups'))return [{entry_id:manualSnap.entry_id,name:'Mock group',loaded:true}];
         if(msg.type.endsWith('/manual')){
           unboundCalls.push(msg);manualSnap.revision++;
           manualSnap.runtime[target]={mode:msg.mode,reason:msg.mode==='auto'?'unbound':'manual'};
@@ -285,18 +305,19 @@ with sync_playwright() as p:
     assert '自動未啟用' in manual_locator.locator('.reason').inner_text()
     assert manual_locator.locator('button.resume').count()==0
     assert page.evaluate('()=>unboundCalls.map(x=>[x.entry_id,x.fan_entity,x.mode])')==[
-        ['group-1','switch.uss_p130_f5_relay0','on'],['group-1','switch.uss_p130_f5_relay0','off'],['group-1','switch.uss_p130_f5_relay0','auto']]
+        ['01M4TJESXTB1DRBYG80VTF3SNG','switch.uss_p130_f5_relay0','on'],['01M4TJESXTB1DRBYG80VTF3SNG','switch.uss_p130_f5_relay0','off'],['01M4TJESXTB1DRBYG80VTF3SNG','switch.uss_p130_f5_relay0','auto']]
     manual_matrix=[]
-    for output in ('on','off'):
+    for theme,output in ((theme,output) for theme in ('dark','light') for output in ('on','off','unknown')):
         for sensors in ('absent','healthy','unavailable'):
             page.evaluate('''args=>{
-              const [output,sensors]=args,target='switch.uss_p130_f5_relay0';
-              manualSnap.bindings=sensors==='absent'?{}:{[target]:{temperature_entity:'sensor.t1',humidity_entity:'sensor.h1'}};
-              const states={...fakeHass.states,[target]:{state:output}};
-              if(sensors==='unavailable')states['sensor.t1']={state:'unavailable'};
+              const [output,sensors,theme]=args,target='switch.uss_p130_f5_relay0';
+              manualCard.setConfig({...manualCard.config,theme});
+              manualSnap.bindings=sensors==='absent'?{}:{[target]:{temperature_entity:'sensor.sensor_8d_s0_batt',humidity_entity:'sensor.sensor_8d_s1_air4_vms_t_214'}};
+              const states={...fakeHass.states,[target]:{state:output},'sensor.sensor_8d_s0_batt':{state:'27.7',attributes:{device_class:'temperature',unit_of_measurement:'°C'}},'sensor.sensor_8d_s1_air4_vms_t_214':{state:'58.2',attributes:{device_class:'humidity',unit_of_measurement:'%'}}};
+              if(sensors==='unavailable')states['sensor.sensor_8d_s0_batt']={state:'unavailable'};
               manualCard.hass={...manualCard.hass,states};
               manualCard.load();
-            }''',[output,sensors])
+            }''',[output,sensors,theme])
             page.wait_for_function('!manualCard.loading')
             for mode in ('on','off','auto'):
                 button=manual_locator.locator('button.resume' if mode=='auto' else f'button[data-mode="{mode}"]')
@@ -305,11 +326,26 @@ with sync_playwright() as p:
                 button.click()
                 page.wait_for_function('(n)=>unboundCalls.length===n+1 && !manualCard.operation',arg=before)
                 assert page.evaluate('()=>unboundCalls.at(-1).mode')==mode
-            manual_matrix.append([output,sensors])
+                assert page.evaluate("()=>getComputedStyle(manualCard.shadowRoot.querySelector('.rotor')).animationPlayState")==('running' if output=='on' else 'paused')
+                assert page.evaluate("()=>getComputedStyle(manualCard.shadowRoot.querySelector('.rotor path')).fill")==('rgb(220, 91, 86)' if output=='on' else 'rgb(138, 148, 153)')
+                if sensors=='healthy':
+                    assert '27.7' in manual_locator.locator('.live-status').inner_text()
+                    assert '58.2' in manual_locator.locator('.live-status').inner_text()
+            if output=='unknown':
+                assert '狀態未知' in manual_locator.locator('.reason').inner_text()
+                assert '明確手動' in manual_locator.locator('.reason').inner_text()
+                assert '已開啟' not in manual_locator.locator('.badge').inner_text()
+                assert '已關閉' not in manual_locator.locator('.badge').inner_text()
+                assert page.evaluate("()=>getComputedStyle(manualCard.shadowRoot.querySelector('.rotor')).animationPlayState")=='paused'
+            assert manual_locator.locator('.fan-item').count()==1
+            assert page.evaluate("()=>getComputedStyle(manualCard.shadowRoot.querySelector('.fans')).gridTemplateColumns.split(' ').length")==2
+            single=page.evaluate("()=>{const s=manualCard.shadowRoot,item=s.querySelector('.fan-item'),grid=s.querySelector('.fans');return {width:item.getBoundingClientRect().width,grid:grid.getBoundingClientRect().width,overflow:item.scrollWidth-item.clientWidth}}")
+            assert single['width']<single['grid']*.55 and single['overflow']<=1,single
+            manual_matrix.append([theme,output,sensors])
     page.evaluate('()=>manualCard.remove()')
-    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card').buildVersion")=='0.2.1'
-    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card-editor').buildVersion")=='0.2.1'
-    (OUT/'runtime-state-matrix.json').write_text(json.dumps({'visual_checks':visual_checks,'manual_matrix':manual_matrix,'errors':errors},ensure_ascii=False,indent=2),encoding='utf-8')
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card').buildVersion")=='0.2.2'
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card-editor').buildVersion")=='0.2.2'
+    (OUT/'runtime-state-matrix.json').write_text(json.dumps({'visual_checks':visual_checks,'fixed_geometry':fixed_geometry,'manual_matrix':manual_matrix,'errors':errors},ensure_ascii=False,indent=2),encoding='utf-8')
     assert not errors,errors
     browser.close()
 print(json.dumps({'browser':'Edge headless','measurements':{str(w):{'row':m['row'],'global_above':m['above'],'overflow':m['overflow']} for w,m in measurements.items()},'discovery':discovery_checks,'lifecycle_races':'passed','editor_configured_devices':'passed','manual':'passed','unbound_manual_on_off_resume':'passed','errors':errors},ensure_ascii=False))

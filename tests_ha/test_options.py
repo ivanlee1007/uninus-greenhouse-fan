@@ -51,7 +51,7 @@ class OptionsTest(unittest.IsolatedAsyncioTestCase):
             calls.append((call.domain, call.service, dict(call.data)))
         self.hass.services.async_register('switch', 'turn_on', service)
         self.hass.services.async_register('switch', 'turn_off', service)
-        for output in ('on', 'off'):
+        for output in ('on', 'off', 'unknown'):
             for health in ('absent', 'healthy', 'unavailable', 'missing'):
                 self.hass.states.async_set('sensor.t', '30', {'device_class':'temperature','unit_of_measurement':'°C'})
                 record = {**self.record, 'fan_entity':target}
@@ -71,12 +71,12 @@ class OptionsTest(unittest.IsolatedAsyncioTestCase):
                 await self.group.manual(target, 'auto')
                 self.assertEqual(len(calls), before)
         before = len(calls)
-        for value in ('unknown', 'unavailable', None):
+        for value in ('unavailable', 'invalid', None):
             if value is None:
                 self.hass.states.async_remove(target)
             else:
                 self.hass.states.async_set(target, value)
-            for mode in ('on', 'off'):
+            for mode in ('on', 'off', 'auto'):
                 with self.assertRaises(ValueError):
                     await self.group.manual(target, mode)
         self.hass.states.async_set('switch.unowned', 'on')
@@ -86,6 +86,56 @@ class OptionsTest(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             await self.group.manual(target, 'on')
         self.assertEqual(len(calls), before)
+
+    async def test_exact_user_unknown_manual_real_services_and_postdurable_recheck(self):
+        target = 'switch.uss_p130_f5_relay0'
+        identity = 'ee34fec4b5b45cc882181801bbd4e71a'
+        self.entry = ConfigEntry(entry_id='01M4TJESXTB1DRBYG80VTF3SNG', domain=DOMAIN, title='P130', data={}, options={}, source='user', version=1, minor_version=1, unique_id=None, discovery_keys={}, subentries_data=[])
+        self.hass.states.async_set(target, 'unknown')
+        self.hass.states.async_set('sensor.sensor_8d_s0_batt', '27.7', {'device_class':'temperature','unit_of_measurement':'°C'})
+        self.hass.states.async_set('sensor.sensor_8d_s1_air4_vms_t_214', '58.2', {'device_class':'humidity','unit_of_measurement':'%'})
+        record = {'device_id':identity,'name':'P130','fan_entity':target,'temperature_entity':'sensor.sensor_8d_s0_batt','humidity_entity':'sensor.sensor_8d_s1_air4_vms_t_214'}
+        async def save(data): self.saved.append(data)
+        self.group = FanGroup(self.hass, self.entry, Registry(self.entry.entry_id, {'revision':0,'devices':{identity:record},'bindings':{target:{key:record[key] for key in ('temperature_entity','humidity_entity')}}}, save))
+        self.hass.data[DOMAIN] = {self.entry.entry_id:self.group}
+        from homeassistant.helpers.storage import Store
+        from custom_components.uninus_greenhouse_fan.persistence import VerifiedStore
+        store = Store(self.hass,1,f'{DOMAIN}.{self.entry.entry_id}',atomic_writes=True)
+        await store.async_save(self.group.registry.payload())
+        persistence = VerifiedStore(self.hass,store,self.group.registry.payload(),self.group.stop)
+        self.group.registry._save = persistence.save
+        save = persistence.save
+        calls = []
+        async def service(call): calls.append((call.service, dict(call.data)))
+        for mode in ('on','off'): self.hass.services.async_register('switch','turn_'+mode,service)
+        for mode in ('on','off','auto'):
+            await self.group.manual(target, mode)
+            self.assertEqual(self.hass.states.get(target).state, 'unknown')
+            self.assertEqual(self.group.snapshot()['runtime'][target]['mode'], mode)
+            self.assertEqual(await Store(self.hass,1,f'{DOMAIN}.{self.entry.entry_id}').async_load(),self.group.registry.payload())
+        self.assertEqual(calls, [('turn_on',{'entity_id':target}),('turn_off',{'entity_id':target})])
+        self.hass.states.async_set('sensor.sensor_8d_s0_batt','40',{'device_class':'temperature','unit_of_measurement':'°C'})
+        for now in (0,10000):
+            with patch('custom_components.uninus_greenhouse_fan.monotonic', return_value=now): await self.group.evaluate_all()
+        self.assertEqual(len(calls),2)
+        for mode in ('on','off','auto'):
+            for feedback in ('unknown','unavailable','invalid',None):
+                self.hass.states.async_set(target,'off')
+                async def changed(data):
+                    await save(data)
+                    if feedback is None: self.hass.states.async_remove(target)
+                    else: self.hass.states.async_set(target,feedback)
+                self.group.registry._save = changed
+                before = len(calls)
+                if feedback == 'unknown':
+                    await self.group.manual(target,mode)
+                    self.assertEqual(len(calls),before+(mode!='auto'))
+                else:
+                    with self.assertRaises(ValueError): await self.group.manual(target,mode)
+                    self.assertEqual(len(calls),before)
+                self.assertEqual(self.group.registry.manual_modes.get(target),None if mode=='auto' else mode)
+                self.assertEqual(self.group.controller.status(target)['mode'],mode)
+                self.assertEqual(await Store(self.hass,1,f'{DOMAIN}.{self.entry.entry_id}').async_load(),self.group.registry.payload())
 
     async def test_menu_device_save_reopen_cancel_and_native_selectors(self):
         flow = self.flow()

@@ -73,7 +73,7 @@ class FanGroup:
         async with self._lock:
             self._require_active()
             self._require_exclusive(fan)
-            if mode != "auto" and self._fan_state(fan) not in ("on", "off"):
+            if self._fan_state(fan) not in ("on", "off", "unknown"):
                 raise ValueError("Fan state unavailable")
             # Save the hold first: if device service fails, automation remains held.
             await self.registry.set_mode(fan, mode)
@@ -81,9 +81,9 @@ class FanGroup:
             self._require_exclusive(fan)
             self.controller.set_mode(fan, mode)
             self._manual_targets.add(fan)
+            if self._fan_state(fan) not in ("on", "off", "unknown"):
+                raise ValueError("Fan state unavailable")
             if mode != "auto":
-                if self._fan_state(fan) not in ("on", "off"):
-                    raise ValueError("Fan state unavailable")
                 await self.hass.services.async_call(
                     fan.split(".", 1)[0], "turn_on" if mode == "on" else "turn_off",
                     {"entity_id": fan}, blocking=True,

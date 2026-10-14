@@ -54,13 +54,22 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.2.1 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.2.1');assert.equal(Editor.buildVersion,'0.2.1');
+test('loaded custom elements expose readable 0.2.2 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.2.2');assert.equal(Editor.buildVersion,'0.2.2');
 });
 const targetSwitch='switch.uss_p130_f5_relay0';
+test('exact user YAML unknown feedback accepts explicit manual without optimistic blades', async () => {
+  const {Card}=setup(), el=new Card(), writes=[];
+  const entry_id='01M4TJESXTB1DRBYG80VTF3SNG',device_id='ee34fec4b5b45cc882181801bbd4e71a';
+  el.setConfig({type:'custom:uninus-greenhouse-fan-card',entry_id,layout:'2',theme:'dark',items:[{device_id,fan_entity:targetSwitch}]});
+  const view={...snapshot(),entry_id,devices:[{device_id,name:'P130',fan_entity:targetSwitch}],bindings:{[targetSwitch]:{temperature_entity:'sensor.sensor_8d_s0_batt',humidity_entity:'sensor.sensor_8d_s1_air4_vms_t_214'}},runtime:{}};
+  el.hass={states:{[targetSwitch]:{state:'unknown'},'sensor.sensor_8d_s0_batt':{state:'27.7',attributes:{device_class:'temperature',unit_of_measurement:'°C'}},'sensor.sensor_8d_s1_air4_vms_t_214':{state:'58.2',attributes:{device_class:'humidity',unit_of_measurement:'%'}}},callWS:async msg=>{if(msg.type.endsWith('/groups'))return [{entry_id,loaded:true}];if(msg.type.endsWith('/manual')){writes.push(msg);view.runtime[targetSwitch]={mode:msg.mode};}return view;}};await flush();
+  for(const mode of ['on','off','auto']){assert.equal(el.canManual(targetSwitch,mode),true);await el.manual(targetSwitch,mode);const html=el.renderFan(el.config.items[0]);assert.match(html,/狀態未知.*明確手動.*自動.*回報/);assert.doesNotMatch(html,/已開啟|已關閉|fan-item running/);assert.match(html,/27\.7/);assert.match(html,/58\.2/);}
+  assert.deepEqual(writes.map(x=>[x.entry_id,x.fan_entity,x.mode]),['on','off','auto'].map(mode=>[entry_id,targetSwitch,mode]));
+});
 test('exact configured P130 output manual gating is independent of sensor health', async () => {
   const {Card}=setup();
-  for(const output of ['on','off'])for(const sensors of ['absent','healthy','unavailable']) {
+  for(const output of ['on','off','unknown'])for(const sensors of ['absent','healthy','unavailable']) {
     const el=new Card(),writes=[];
     el.setConfig({...config,items:[{device_id:'p130',fan_entity:'fan.stale'}]});
     const view={...snapshot(),devices:[{device_id:'p130',name:'P130',fan_entity:targetSwitch}],bindings:sensors==='absent'?{}:{[targetSwitch]:{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{}};
@@ -70,9 +79,9 @@ test('exact configured P130 output manual gating is independent of sensor health
     assert.doesNotMatch(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
   }
 });
-test('disabled configured output diagnostics distinguish absent and reported unknown/unavailable', async () => {
+test('disabled configured output diagnostics distinguish absent and reported unavailable/invalid', async () => {
   const {Card}=setup();
-  for(const value of [null,'unknown','unavailable']) {
+  for(const value of [null,'unavailable','invalid']) {
     const el=new Card();el.setConfig({...config,items:[{device_id:'p130',fan_entity:'fan.stale'}]});
     el.hass={...groupHass(groups,()=>({...snapshot(),devices:[{device_id:'p130',fan_entity:targetSwitch}]})),states:value?{[targetSwitch]:{state:value}}:{}};await flush();
     const html=el.renderFan(el.config.items[0]);
@@ -147,7 +156,7 @@ test('manual gate and rendered controls share domain availability and fresh scop
   el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/manual'))writes++;return {...snapshot(),bindings:{}}});await flush();
   await el.manual('fan.a','on');await el.manual('sensor.t','on');await el.manual('fan.b','bad');assert.equal(writes,0);
   assert.match(el.renderFan(el.config.items[1]),/data-mode="on" disabled/);
-  for(const value of ['unknown','unavailable','invalid']) {
+  for(const value of ['unavailable','invalid']) {
     el.hass={...el.hass,states:{...states,'fan.b':{state:value}}};
     await el.manual('fan.b','on');assert.match(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
   }

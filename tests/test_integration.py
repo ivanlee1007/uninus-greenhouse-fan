@@ -134,7 +134,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         for fan, mode in [('sensor.t','on'), ('light.a','off'), ('fan.missing','on'), ('fan.','on'), ('switch.a','bad'), ('fan.a','ON')]:
             with self.subTest(fan=fan, mode=mode), self.assertRaises(ValueError):
                 await self.group.manual(fan, mode)
-        for value in ('unknown', 'unavailable', 'invalid'):
+        for value in ('unavailable', 'invalid'):
             self.hass.states['fan.a'].state = value
             with self.assertRaises(ValueError):
                 await self.group.manual('fan.a', 'on')
@@ -152,6 +152,8 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.group.snapshot()['runtime']['switch.a']['mode'], 'on')
         self.assertEqual(FakeStore.records[f'{app.DOMAIN}.entry-a']['manual_modes'], {'switch.a':'on'})
         self.hass.states.pop('switch.a')
+        with self.assertRaises(ValueError): await self.group.manual('switch.a', 'auto')
+        self.hass.states['switch.a'] = Entity('switch.a','unknown')
         await self.group.manual('switch.a', 'auto')
         self.assertEqual(self.group.registry.manual_modes, {})
 
@@ -343,7 +345,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
     async def test_unbound_never_actuates_and_registers_contract(self):
         self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.2.1')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.2.2')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])
