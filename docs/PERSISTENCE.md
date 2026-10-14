@@ -1,6 +1,6 @@
 # Persistence transactions and recovery
 
-Device inventory, sensor bindings, revision and manual holds are one durable record.
+Device inventory, sensor bindings, revision, `control_mode` (auto/manual) and manual holds are one durable record. Legacy records default/migrate to auto without altering configured identities or holds. Every commit retains the flag; invalid stored modes are rejected. Global Manual is a group-wide gate independent of individual on/off holds, and global Auto clears all holds in one verified transaction. Neither mode handler actuates output services. Failed writes retain prior modes and duration state; quarantined groups cannot control or reload.
 The integration constructs the real HA `Store` with `atomic_writes=True`. A write
 interrupted before the atomic replacement leaves the previous record intact.
 

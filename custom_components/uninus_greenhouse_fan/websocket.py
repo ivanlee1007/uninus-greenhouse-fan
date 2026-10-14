@@ -100,7 +100,30 @@ async def ws_manual(hass: HomeAssistant, connection: websocket_api.ActiveConnect
         connection.send_result(msg["id"], result)
 
 
+@websocket_api.websocket_command({
+    "type": f"{DOMAIN}/set_control_mode",
+    vol.Required("entry_id"): str,
+    vol.Required("control_mode"): vol.In(("auto", "manual")),
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_set_control_mode(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    """Admin-only passive control-mode transaction for one actual loaded group."""
+    group = _group(hass, connection, msg)
+    if group is None:
+        return
+    try:
+        result = await group.set_control_mode(msg["control_mode"])
+    except ValueError as error:
+        connection.send_error(msg["id"], "invalid_control_mode", str(error))
+    except Exception:
+        _LOGGER.exception("Could not persist control mode for group %s", msg["entry_id"])
+        connection.send_error(msg["id"], "mode_failed", "控制模式儲存失敗；請重新讀取群組並檢查日誌")
+    else:
+        connection.send_result(msg["id"], result)
+
+
 def register_commands(hass: HomeAssistant) -> None:
     """Register one command set even when several group entries exist."""
-    for command in (ws_groups, ws_get, ws_bind, ws_manual):
+    for command in (ws_groups, ws_get, ws_bind, ws_manual, ws_set_control_mode):
         websocket_api.async_register_command(hass, command)

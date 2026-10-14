@@ -26,6 +26,46 @@ const states = {
 };
 const snapshot = (revision=2) => ({entry_id:'group-1',revision,devices:['fan.a','fan.b','switch.relay'].map(fan=>({device_id:fan,name:fan,fan_entity:fan})),policy:{temperature_on:30,temperature_off:25,humidity_on:80,humidity_off:60,duration_seconds:120},bindings:{'fan.a':{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{'fan.a':{mode:'auto',pending:null,reason:'Ready'}}});
 const config = {type:'custom:uninus-greenhouse-fan-card',entry_id:'group-1',name:'House',items:[{fan_entity:'fan.a',name:'Front'}],layout:'auto',theme:'dark'};
+test('global mutation errors and late completions are scoped and cannot bypass pending gate', async () => {
+  const {Card}=setup(),el=new Card();el.setConfig(config);let reject;
+  const calls=[];el.hass=groupHass(groups,msg=>{calls.push(msg);return msg.type.endsWith('/set_control_mode')?new Promise((resolve,r)=>reject=r):snapshot()});await flush();
+  const pending=el.setControlMode('manual');
+  await el.manual('fan.a','on');await el.setControlMode('auto');
+  assert.equal(calls.filter(x=>x.type.endsWith('/set_control_mode')).length,1);
+  el.disconnectedCallback();reject(Error('old fault'));await pending;
+  assert.equal(el.snapshot,null);assert.equal(el.error,'');
+  el.detached=false;el.setConfig({...config,name:'Retry'});await flush();
+  const failed=el.setControlMode('manual');reject(Error('disk offline'));await failed;
+  assert.equal(el.snapshot.control_mode,undefined);assert.match(el.error,/disk offline/);
+  assert.match(el.shadowRoot.innerHTML,/role="alert"/);
+});
+
+test('auto threshold colors use separate finite native readings and strict boundaries', async () => {
+  const {Card}=setup(),el=new Card();el.setConfig(config);let view=snapshot();
+  el.hass=groupHass(groups,()=>view);await flush();
+  for(const [t,h,mode,global,expected] of [[30,80,'auto','auto',0],[30.001,80,'auto','auto',1],[30,80.001,'auto','auto',1],[31,81,'auto','auto',2],[31,81,'on','auto',0],[31,81,'auto','manual',0],[null,'unknown','auto','auto',0],[true,'Infinity','auto','auto',0]]) {
+    view={...snapshot(),control_mode:global,runtime:{'fan.a':{mode}}};
+    el.hass={...el.hass,states:{...states,'sensor.t':{...states['sensor.t'],state:t},'sensor.h':{...states['sensor.h'],state:h}}};await el.load();
+    assert.equal((el.renderFan(el.config.items[0]).match(/threshold-high/g)||[]).length,expected,JSON.stringify([t,h,mode,global]));
+  }
+  view={...snapshot(),bindings:{}};await el.load();assert.doesNotMatch(el.renderFan(el.config.items[0]),/threshold-high/);
+});
+
+test('global mode waits for authoritative response and blocks resume under global manual', async () => {
+  const {Card}=setup(), el=new Card();el.setConfig(config);let finish;
+  el.hass=groupHass(groups,msg=>msg.type.endsWith('/set_control_mode')?new Promise(r=>finish=r):snapshot());await flush();
+  assert.equal(typeof el.setControlMode,'function');
+  const initial=new Card();initial.setConfig(config);assert.match(initial.shadowRoot.innerHTML,/role="switch"[^>]*aria-checked="false"[^>]*disabled/);
+  const pending=el.setControlMode('manual');
+  assert.match(el.shadowRoot.innerHTML,/role="switch"[^>]*aria-checked="true"[^>]*disabled/);
+  finish({...snapshot(),control_mode:'manual'});await pending;
+  assert.equal(el.canManual('fan.a','auto'),false);
+  assert.equal(el.canManual('fan.a','on'),true);
+  assert.match(el.renderFan(el.config.items[0]),/全域手動/);
+  assert.doesNotMatch(el.renderFan(el.config.items[0]),/threshold-high/);
+  assert.match(el.shadowRoot.innerHTML,/role="switch"[^>]*aria-checked="false"/);
+});
+
 test('editor choices are owned configured devices, stable identity and no binding UI', async () => {
   const {Editor}=setup();const el=new Editor();el.setConfig(config);
   const inventory={...snapshot(),devices:[{device_id:'opaque-a',name:'Configured A',fan_entity:'fan.a'},{device_id:'offline',name:'Offline configured',fan_entity:'switch.offline'}]};
@@ -54,8 +94,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.2.2 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.2.2');assert.equal(Editor.buildVersion,'0.2.2');
+test('loaded custom elements expose readable 0.3.0 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.3.0');assert.equal(Editor.buildVersion,'0.3.0');
 });
 const targetSwitch='switch.uss_p130_f5_relay0';
 test('exact user YAML unknown feedback accepts explicit manual without optimistic blades', async () => {

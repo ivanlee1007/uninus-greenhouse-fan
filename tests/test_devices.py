@@ -9,6 +9,42 @@ spec.loader.exec_module(module)
 Registry = module.Registry
 
 class DevicesTest(unittest.IsolatedAsyncioTestCase):
+    async def test_existing_inventory_without_control_flag_is_migrated_without_identity_changes(self):
+        async def save(data): pass
+        registry=Registry('group',{},save)
+        row=await registry.save_device(None,{'name':'A','fan_entity':'fan.a'})
+        old=registry.payload();old.pop('control_mode')
+        migrated=Registry('group',old,save)
+        self.assertTrue(migrated.migrated)
+        self.assertEqual(migrated.devices,registry.devices)
+        self.assertEqual(migrated.control_mode,'auto')
+        for flag in (None,True,False,0,1,'AUTO','on',[],{}):
+            with self.subTest(flag=flag),self.assertRaises(ValueError):
+                Registry('group',{**old,'control_mode':flag},save)
+
+
+    async def test_global_control_mode_atomic_roundtrip_and_gate(self):
+        saved=[]
+        async def save(data): saved.append(data)
+        registry=Registry('group', {}, save)
+        for fan in ('fan.a','switch.hidden'):
+            await registry.save_device(None, {'name':fan,'fan_entity':fan})
+        await registry.set_mode('fan.a','on')
+        before=len(saved)
+        await registry.set_control_mode('manual')
+        self.assertEqual(len(saved),before+1)
+        self.assertEqual(registry.snapshot()['control_mode'],'manual')
+        restored=Registry('group',saved[-1],save)
+        self.assertEqual(restored.control_mode,'manual')
+        await restored.save_device(None,{'name':'new','fan_entity':'fan.new'})
+        self.assertEqual(saved[-1]['control_mode'],'manual')
+        with self.assertRaisesRegex(ValueError,'global|全域'):
+            await restored.set_mode('fan.a','auto')
+        await restored.set_mode('fan.a','off')
+        await restored.set_control_mode('auto')
+        self.assertEqual(restored.manual_modes,{})
+        self.assertEqual(saved[-1]['control_mode'],'auto')
+
     async def test_atomic_device_record_and_stable_identity(self):
         saved = []
         async def save(data): saved.append(data)

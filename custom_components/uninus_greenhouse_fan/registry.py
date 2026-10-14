@@ -15,6 +15,9 @@ class Registry:
         revision = data.get('revision', 0)
         bindings = data.get('bindings', {})
         modes = data.get('manual_modes', {})
+        control_mode = data.get('control_mode', 'auto')
+        if control_mode not in ('auto', 'manual'):
+            raise ValueError('Invalid stored control mode')
         if type(revision) is not int or revision < 0 or not isinstance(bindings, dict) or not isinstance(modes, dict):
             raise ValueError('Invalid stored registry')
         for fan, pair in bindings.items():
@@ -26,12 +29,14 @@ class Registry:
         self.revision = revision
         self.bindings = deepcopy(bindings)
         self.manual_modes = deepcopy(modes)
+        self.control_mode = control_mode
         self._save = save
         self._lock = asyncio.Lock()
         self._closed = False
-        self.migrated = 'devices' not in data
+        legacy_inventory = 'devices' not in data
+        self.migrated = legacy_inventory or 'control_mode' not in data
         self.devices = deepcopy(data.get('devices', {}))
-        if self.migrated:
+        if legacy_inventory:
             for fan in sorted(set(bindings) | set(modes)):
                 identity = uuid5(NAMESPACE_URL, f'{entry_id}/{fan}').hex
                 self.devices[identity] = {'device_id': identity, 'name': fan, 'fan_entity': fan,
@@ -83,13 +88,23 @@ class Registry:
         return next((deepcopy(row) for row in self.devices.values() if row['fan_entity'] == fan), None)
 
     def payload(self):
-        return {'revision': self.revision, 'devices': deepcopy(self.devices), 'bindings': deepcopy(self.bindings), 'manual_modes': deepcopy(self.manual_modes)}
+        return {'revision': self.revision, 'devices': deepcopy(self.devices), 'bindings': deepcopy(self.bindings), 'manual_modes': deepcopy(self.manual_modes), 'control_mode': self.control_mode}
 
-    async def _commit(self, devices, modes):
+    async def _commit(self, devices, modes, control_mode=None):
+        control_mode = self.control_mode if control_mode is None else control_mode
         bindings, revision = self._bindings(devices), self.revision + 1
-        await self._save({'revision': revision, 'devices': deepcopy(devices), 'bindings': bindings, 'manual_modes': deepcopy(modes)})
+        await self._save({'revision': revision, 'devices': deepcopy(devices), 'bindings': bindings, 'manual_modes': deepcopy(modes), 'control_mode': control_mode})
         self.devices, self.bindings, self.manual_modes, self.revision = devices, bindings, modes, revision
+        self.control_mode = control_mode
         self.migrated = False
+
+    async def set_control_mode(self, mode):
+        """One durable transaction; global auto explicitly clears every hold."""
+        if mode not in ('auto', 'manual'):
+            raise ValueError('Invalid control mode')
+        async with self._lock:
+            self._require_open()
+            await self._commit(deepcopy(self.devices), {} if mode == 'auto' else deepcopy(self.manual_modes), mode)
 
     async def save_device(self, identity, record, expected_revision=None):
         clean = self.validate_record(record)
@@ -132,7 +147,7 @@ class Registry:
                     for x in (temperature, humidity)))
 
     def snapshot(self):
-        return {'entry_id': self.entry_id, 'revision': self.revision, 'bindings': deepcopy(self.bindings),
+        return {'entry_id': self.entry_id, 'revision': self.revision, 'bindings': deepcopy(self.bindings), 'control_mode': self.control_mode,
                 'devices': [{key: row[key] for key in ('device_id', 'name', 'fan_entity', 'temperature_entity', 'humidity_entity')} for row in self.devices.values()]}
 
     async def bind(self, expected_revision, fan, temperature, humidity, existing):
@@ -152,6 +167,8 @@ class Registry:
             self._require_open()
             if not self.owned(fan):
                 raise ValueError('Output is not configured in this group')
+            if mode == 'auto' and self.control_mode == 'manual':
+                raise ValueError('全域手動模式：請先將全域控制切換為自動 (global manual)')
             modes = deepcopy(self.manual_modes)
             if mode == 'auto':
                 modes.pop(fan, None)

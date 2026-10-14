@@ -1,4 +1,4 @@
-# UNiNUS Greenhouse Fan 0.2.2
+# UNiNUS Greenhouse Fan 0.3.0
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -15,13 +15,37 @@ Home Assistant integration with a Lovelace card based on the approved global-pol
 
 - Each output can belong to one configured device/group. Duplicate outputs are rejected within and across loaded groups. If **another group is unloaded**, its ownership cannot be proven: device assignment/editing and manual/automatic control are conservatively blocked until **all groups load**. Removal and shared policy edits remain possible.
 - Sensor-source changes reset automatic duration timers and preserve manual holds. A name-only edit leaves timers intact.
-- Output replacement retains the opaque device identity, but **does not transfer the old hold/timers**. It does not actuate the old output. The new output starts automatic evaluation with fresh timers if complete healthy sources exist; a zero-duration policy permits action on its next evaluation. Review this before saving.
+- Output replacement retains the opaque device identity, but **does not transfer the old hold/timers**. It does not actuate the old output. The new output starts automatic evaluation with fresh timers only under global Auto if complete healthy sources exist; a zero-duration policy permits action on its next evaluation. Review this before saving.
 - Explicit manual on/off/resume requires an owned existing canonical `fan.*`/`switch.*` output reporting **`on`, `off`, or `unknown`**, **not sensors**. Missing, `unavailable`, invalid states/domains, unowned outputs and stale/unloaded scopes are rejected before saving and rechecked after awaited durable persistence. A durable hold is saved before dispatch, survives restart and remains held if the service fails. **Resume automatic** clears the hold without immediate actuation; manual-only devices remain automatically inactive. An `unknown` output may receive explicit manual commands, but automatic evaluation stays paused until valid `on`/`off` feedback returns. Successful commands update hold mode only; they never fabricate feedback or animate blades optimistically.
 - Auto remains fail-closed for missing/unavailable/mislabeled/non-finite readings. On: temperature above limit **OR** humidity above limit. Off: temperature at/below off limit **AND** humidity at/below off limit. Conditions must last the required duration.
 
+## Global Auto / Manual control (0.3.0)
+
+The compact switch lives **inside the existing global policy strip**, not in the editor or a new row. It controls **every configured device in the selected group**, including devices hidden from this card, offline outputs and manual-only outputs. Only administrators can change it. The switch is disabled while pending and reflects the **authoritative backend snapshot**, never an optimistic selection; click/keyboard activation does not expand the policy disclosure.
+
+- **Manual:** persist a group-wide automation gate, cancel all pending duration state and **maintain current physical output**. No turn-on/turn-off service is called by the mode command. Explicit individual manual on/off remains available for healthy or `unknown` output feedback; individual Resume is disabled/rejected with instructions to switch the group to Auto first.
+- **Auto:** in one transaction clear **all** individual manual holds, reset pending duration state and resume every configured device. No immediate actuation occurs in the mode handler. The next normal periodic evaluation starts fresh durations; a zero-duration policy can actuate on that next evaluation. Sources/feedback must still be valid.
+- The global gate survives reload, device additions/replacements/source/name edits and explicit per-device manual commands. Historical storage without `control_mode` migrates to `auto`, preserving stable identities, bindings and existing holds. Invalid stored mode flags fail closed. Per-device manual holds while global Auto remain independent until explicit individual Resume or global Auto.
+- All mutation paths retain the flag. Group/device/registry locks serialize mode changes against manual commands, device CRUD and evaluation. Verified persistence failures preserve the previous complete modes and pending timers; indeterminate failures quarantine the group. Unload/stopping checks occur before and after awaited persistence, and disposed UI completions are ignored.
+
+Temperature and humidity readings gain **separate underlined high-contrast warning colors only in effective Auto mode** when their finite native °C/% value is strictly greater than its own on-threshold. Exact equality, missing/invalid/mislabeled readings, individual holds and global Manual do not warn. No alert rows were added; output blade colors still reflect actual feedback only.
+
+Measured collapsed four-device heights (CSS px), identical in light/dark themes; baseline is `fea58d4`:
+
+| Layout | Width | Before | 0.3.0 | Reduction |
+|---|---:|---:|---:|---:|
+| fixed 2 | 390 | 886.09375 | 834.09375 | 52 |
+| fixed 2 | 500 | 919.109375 | 825.109375 | 94 |
+| fixed 2 | 720 / 1080 | 848.171875 | 737.671875 | 110.5 |
+| auto | 390 | 1481.15625 | 1309.15625 | 172 |
+| auto | 500 | 1478.171875 | 1275.171875 | 203 |
+| auto | 720 / 1080 | 848.171875 | 737.671875 | 110.5 |
+
+All 16 measured cases preserve 44×44px minimum control targets, zero horizontal overflow and unclipped reason/readout text. These are local real-Edge synthetic fixtures, not live dashboard measurements. Full measurements, computed colors and gate counts: `docs/verification/0.3.0-control-mode.json` (reruns also produce `tests/evidence/control-mode-layout.json`).
+
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.2.2` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.3.0` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary HA entity picker is offered. If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -31,7 +55,7 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.2.2'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.3.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Migration and old YAML
 
@@ -66,6 +90,7 @@ node --check custom_components/uninus_greenhouse_fan/card.js
 python -c "from pathlib import Path; assert Path('www/uninus-greenhouse-fan-card.js').read_bytes() == Path('custom_components/uninus_greenhouse_fan/card.js').read_bytes()"
 git diff --check
 python tests/verify_card_browser.py
+python tests/verify_control_browser.py
 ```
 
 Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.

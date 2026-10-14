@@ -1,4 +1,4 @@
-# Greenhouse fan 0.2.0 implementation contract
+# Greenhouse fan 0.3.0 implementation contract
 
 The v8 design reference stays global-policy-above-grid with responsive columns. No demo width control is shipped.
 
@@ -10,6 +10,8 @@ The v8 design reference stays global-policy-above-grid with responsive columns. 
 - Editor only picks selected-group inventory including offline records, display names/order/group/appearance. Dashboard Save remains display-only. No bind call, sensor inputs, Apply/Discard, revision or ID user field.
 - New selections store device_id and follow output edits; deleted IDs never fall back. Literal fan_entity remains backward compatible.
 - Snapshot devices fields are allowlisted device_id/name/fan_entity/temperature_entity/humidity_entity. Runtime is output-keyed; /get and /groups are authenticated read-only.
+- Admin-only /set_control_mode accepts entry_id + control_mode auto/manual for an actual loaded group. One verified registry transaction retains inventory and publishes the durable group gate; Manual holds physical output without services, Auto clears every individual hold without immediate actuation. All configured/hidden/offline/unknown devices are included. Mode changes serialize against CRUD/manual/evaluation; pre/post persistence active checks prevent disposed publication. Manual blocks individual Resume in backend and UI. Reload/add/edit preserve the global gate.
+- Auto-only per-reading warning color uses finite native values and strict > on-threshold, not rounded display or output feedback. No warning rows; underlined high-contrast colors retain clear light/dark semantics. Compact geometry gates retain fixed 2 columns and 44px touch targets.
 - Admin-only /manual accepts configured owned fan_entity and on/off/auto. Holds save before dispatch; no sensors needed for manual. Resume only clears hold. Auto remains fail-closed with duration/hysteresis.
 - Compatibility /bind can update an existing configured output only, using an internal optimistic revision. It cannot add unconfigured bindings and is never called by the editor.
 - Sources reset pending timers preserving manual holds; name-only edits leave them unchanged. Output replacement keeps identity but clears old holds/timers and does not actuate old/new hardware while saving. New output auto starts from fresh evaluation (zero duration may act next tick). Removal clears automation/holds without switching physical state.

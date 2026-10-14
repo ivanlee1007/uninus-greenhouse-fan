@@ -31,6 +31,8 @@ class FanGroup:
         self.controller = Controller(_entry_policy(entry))
         for fan, mode in registry.manual_modes.items():
             self.controller.set_mode(fan, mode)
+        if registry.control_mode == 'manual':
+            self.controller.set_control_mode('manual')
         self._manual_targets = set(registry.manual_modes)
         self.active = True
         self._lock = asyncio.Lock()
@@ -72,6 +74,8 @@ class FanGroup:
             raise ValueError("Invalid fan or mode")
         async with self._lock:
             self._require_active()
+            if mode == 'auto' and self.registry.control_mode == 'manual':
+                raise ValueError('全域手動模式：請先將全域控制切換為自動')
             self._require_exclusive(fan)
             if self._fan_state(fan) not in ("on", "off", "unknown"):
                 raise ValueError("Fan state unavailable")
@@ -90,10 +94,26 @@ class FanGroup:
                 )
             return self.snapshot()
 
+    async def set_control_mode(self, mode: str) -> dict:
+        """Persist one group-wide gate without invoking any output service."""
+        lock = self.hass.data.setdefault(DOMAIN, {}).setdefault('_devices_lock', asyncio.Lock())
+        async with lock, self._lock:
+            self._require_active()
+            for row in self.registry.devices.values():
+                self._require_exclusive(row['fan_entity'])
+            await self.registry.set_control_mode(mode)
+            self._require_active()
+            self.controller.set_control_mode(mode)
+            if mode == 'auto':
+                self._manual_targets.clear()
+            return self.snapshot()
+
     async def evaluate_all(self) -> None:
         """The same persistent-duration gate runs on every periodic evaluation."""
         async with self._lock:
             if not self.active:
+                return
+            if self.registry.control_mode == 'manual':
                 return
             now = monotonic()
             for fan, binding in tuple(self.registry.bindings.items()):

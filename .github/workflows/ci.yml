@@ -37,4 +37,6 @@ jobs:
           python -m pip install playwright
           python -m playwright install --with-deps chromium
       - name: Exact-width real Chromium layout and editor tests
-        run: python tests/verify_card_browser.py
+        run: |
+          python tests/verify_card_browser.py
+          python tests/verify_control_browser.py

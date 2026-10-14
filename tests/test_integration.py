@@ -110,6 +110,41 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         await app.async_unload_entry(self.hass,self.entry)
         self.assertEqual(listeners,[])
 
+    async def test_global_manual_gate_hidden_devices_reload_and_fresh_auto(self):
+        await self.group.bind(0,'fan.a','sensor.t','sensor.h')
+        await self.group.evaluate_all()
+        self.assertEqual(self.group.snapshot()['runtime']['fan.a']['pending'],'on')
+        self.hass.states['switch.a'].state='unavailable'
+        await self.group.set_control_mode('manual')
+        self.assertEqual(self.hass.services.calls,[])
+        for row in self.group.snapshot()['runtime'].values():
+            self.assertEqual(row['mode'],'manual')
+            self.assertIsNone(row['pending'])
+        await self.group.evaluate_all()
+        self.assertEqual(self.hass.services.calls,[])
+        await app.async_unload_entry(self.hass,self.entry)
+        await app.async_setup_entry(self.hass,self.entry)
+        self.group=self.hass.data[app.DOMAIN][self.entry.entry_id]
+        self.assertEqual(self.group.snapshot()['control_mode'],'manual')
+        await self.group.manual('fan.a','on')
+        self.assertEqual(self.group.snapshot()['runtime']['fan.a']['mode'],'manual')
+        with self.assertRaisesRegex(ValueError,'全域'):
+            await self.group.manual('fan.a','auto')
+        self.hass.states['fan.new']=Entity('fan.new','unknown')
+        await self.group.save_device(None,{'name':'New','fan_entity':'fan.new'})
+        self.assertEqual(self.group.snapshot()['runtime']['fan.new']['mode'],'manual')
+        self.hass.states['fan.a'].state='off'
+        before=len(self.hass.services.calls)
+        await self.group.set_control_mode('auto')
+        self.assertEqual(len(self.hass.services.calls),before)
+        self.assertEqual(self.group.registry.manual_modes,{})
+        for row in self.group.snapshot()['runtime'].values():
+            self.assertEqual(row['mode'],'auto')
+            self.assertIsNone(row['pending'])
+        await self.group.evaluate_all()
+        self.assertEqual(self.group.snapshot()['runtime']['fan.a']['pending'],'on')
+        self.assertEqual(len(self.hass.services.calls),before)
+
     async def test_unbound_manual_outputs_persist_reload_and_resume_without_actuation(self):
         for fan in ('fan.a', 'switch.a'):
             for mode in ('on', 'off'):
@@ -343,9 +378,9 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls, [])
 
     async def test_unbound_never_actuates_and_registers_contract(self):
-        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
+        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual','uninus_greenhouse_fan/set_control_mode'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.2.2')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.3.0')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])

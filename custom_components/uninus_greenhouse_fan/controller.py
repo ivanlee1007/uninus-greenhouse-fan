@@ -30,6 +30,17 @@ class Controller:
     def __init__(self, policy: Policy):
         self.policy = policy
         self._states = {}
+        self.control_mode = 'auto'
+
+    def set_control_mode(self, mode):
+        if mode not in ('auto', 'manual'):
+            raise ValueError('Invalid control mode')
+        self.control_mode = mode
+        for fan in self._states:
+            if mode == 'auto':
+                self.set_mode(fan, 'auto')
+            else:
+                self.reset(fan)
 
     def _state(self, fan):
         return self._states.setdefault(fan, {'mode': 'auto', 'pending': None, 'since': None, 'reason': 'unbound'})
@@ -54,10 +65,16 @@ class Controller:
 
     def status(self, fan):
         state = self._state(fan)
+        if self.control_mode == 'manual':
+            return {'mode': 'manual', 'pending': None, 'reason': 'global_manual'}
         return {key: state[key] for key in ('mode', 'pending', 'reason')}
 
     def evaluate(self, fan, bound, fan_state, temperature, humidity, now):
         state = self._state(fan)
+        if self.control_mode == 'manual':
+            state['reason'] = 'global_manual'
+            self.reset(fan)
+            return None
         if state['mode'] != 'auto':
             state['reason'] = 'manual'
             self.reset(fan)

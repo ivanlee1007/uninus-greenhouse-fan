@@ -18,6 +18,19 @@ class ControllerTest(unittest.TestCase):
         self.policy = Policy(temperature_on=30, temperature_off=25, humidity_on=80, humidity_off=60, duration_seconds=120)
         self.ctl = Controller(self.policy)
 
+    def test_global_gate_overrides_individual_modes_and_resets_both_durations(self):
+        for fan,feedback,t,h in [('fan.a','off',31,65),('switch.b','on',24,59)]:
+            self.ctl.evaluate(fan,True,feedback,t,h,0)
+            self.ctl.set_control_mode('manual')
+            self.ctl.set_mode(fan,'auto')
+            self.assertIsNone(self.ctl.evaluate(fan,True,feedback,t,h,1000))
+            self.assertEqual(self.ctl.status(fan),{'mode':'manual','pending':None,'reason':'global_manual'})
+            self.ctl.set_control_mode('auto')
+            self.assertIsNone(self.ctl.evaluate(fan,True,feedback,t,h,1001))
+            self.assertIsNone(self.ctl.evaluate(fan,True,feedback,t,h,1120))
+            self.assertEqual(self.ctl.evaluate(fan,True,feedback,t,h,1121),'on' if feedback=='off' else 'off')
+        with self.assertRaises(ValueError): self.ctl.set_control_mode('bad')
+
     def test_unbound_or_invalid_never_acts_and_resets_pending(self):
         self.assertIsNone(self.ctl.evaluate('fan.a', False, 'off', 31, 55, 0))
         self.assertIsNone(self.ctl.evaluate('fan.a', True, 'off', 31, 55, 0))
