@@ -89,7 +89,7 @@ class FakeHass:
     def async_create_task(self,coroutine):return asyncio.create_task(coroutine)
 
 class FakeEntry:
-    def __init__(self):self.entry_id='entry-a';self.data={'name':'A'};self.options={};self.update_listeners=[]
+    def __init__(self):self.entry_id='entry-a';self.domain=app.DOMAIN;self.title='A';self.data={'name':'A'};self.options={};self.update_listeners=[]
     def add_update_listener(self,callback):
         self.update_listeners.append(callback)
         return lambda:self.update_listeners.remove(callback)
@@ -98,6 +98,8 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         FakeStore.records={};commands.clear();listeners.clear()
         self.hass=FakeHass();self.entry=FakeEntry()
+        self.entries=[self.entry]
+        self.hass.config_entries=types.SimpleNamespace(async_entries=lambda domain:self.entries)
         self.assertTrue(await app.async_setup_entry(self.hass,self.entry))
         self.group=self.hass.data[app.DOMAIN][self.entry.entry_id]
 
@@ -105,10 +107,85 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         await app.async_unload_entry(self.hass,self.entry)
         self.assertEqual(listeners,[])
 
+    async def test_setup_without_loaded_entries_registers_groups_once(self):
+        hass = FakeHass()
+        self.assertTrue(await app.async_setup(hass, {}))
+        self.assertTrue(await app.async_setup(hass, {}))
+        self.assertEqual(sum(c._ws_command.endswith('/groups') for c in commands), 2)
+
+    async def test_stale_runtime_and_unloaded_entries_cannot_dispatch(self):
+        from custom_components.uninus_greenhouse_fan.websocket import ws_get, ws_manual
+        await self.group.bind(0, 'fan.a', 'sensor.t', 'sensor.h')
+        errors = []
+        connection = types.SimpleNamespace(send_error=lambda *args:errors.append(args), send_result=lambda *args:self.fail('unexpected success'))
+        self.entries.clear()
+        ws_get(self.hass, connection, {'id':1, 'entry_id':'entry-a'})
+        await ws_manual(self.hass, connection, {'id':2, 'entry_id':'entry-a', 'fan_entity':'fan.a', 'mode':'on'})
+        self.assertEqual(len(errors), 2)
+        self.assertEqual(self.hass.services.calls, [])
+
+    async def test_empty_and_inactive_groups_are_read_only(self):
+        from custom_components.uninus_greenhouse_fan.websocket import ws_groups, ws_bind
+        results, errors = [], []
+        connection = types.SimpleNamespace(send_result=lambda id, result:results.append(result), send_error=lambda *args:errors.append(args))
+        self.entries.clear()
+        ws_groups(self.hass, connection, {'id':1})
+        self.assertEqual(results[-1], [])
+        self.entries.append(self.entry)
+        self.group.stop()
+        ws_groups(self.hass, connection, {'id':2})
+        self.assertEqual(results[-1], [{'entry_id':'entry-a', 'name':'A', 'loaded':False}])
+        await ws_bind(self.hass, connection, {'id':3, 'entry_id':'entry-a', 'expected_revision':0, 'fan_entity':'fan.a', 'temperature_entity':'sensor.t', 'humidity_entity':'sensor.h'})
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(self.group.registry.revision, 0)
+        self.assertEqual(self.hass.services.calls, [])
+
+    async def test_unload_during_manual_save_never_dispatches_after_save(self):
+        await self.group.bind(0, 'fan.a', 'sensor.t', 'sensor.h')
+        saved, finish = asyncio.Event(), asyncio.Event()
+        original = self.group.registry._save
+        async def paused_save(data):
+            saved.set()
+            await finish.wait()
+            await original(data)
+        self.group.registry._save = paused_save
+        pending = asyncio.create_task(self.group.manual('fan.a', 'on'))
+        await saved.wait()
+        await app.async_unload_entry(self.hass, self.entry)
+        finish.set()
+        with self.assertRaises(ValueError):
+            await pending
+        self.assertEqual(self.hass.services.calls, [])
+
+    async def test_unload_blocks_queued_manual_and_periodic_work(self):
+        await self.group.bind(0, 'fan.a', 'sensor.t', 'sensor.h')
+        await self.group._lock.acquire()
+        pending = asyncio.create_task(self.group.manual('fan.a', 'on'))
+        await asyncio.sleep(0)
+        await app.async_unload_entry(self.hass, self.entry)
+        self.group._lock.release()
+        with self.assertRaises(ValueError):
+            await pending
+        await self.group.evaluate_all()
+        self.assertEqual(self.hass.services.calls, [])
+        self.assertEqual(self.group.registry.manual_modes, {})
+
+    async def test_groups_lists_only_actual_entries_with_runtime_loaded(self):
+        from custom_components.uninus_greenhouse_fan.websocket import ws_groups
+        other = types.SimpleNamespace(entry_id='other', domain='other', title='Other')
+        unloaded = types.SimpleNamespace(entry_id='entry-b', domain=app.DOMAIN, title='B')
+        self.hass.config_entries = types.SimpleNamespace(async_entries=lambda domain: [self.entry, unloaded, other])
+        self.hass.data[app.DOMAIN]['ghost'] = self.group
+        results = []
+        connection = types.SimpleNamespace(send_result=lambda id, result: results.append(result))
+        ws_groups(self.hass, connection, {'id': 1})
+        self.assertEqual(results, [[{'entry_id': 'entry-a', 'name': 'A', 'loaded': True}, {'entry_id': 'entry-b', 'name': 'B', 'loaded': False}]])
+        self.assertEqual(self.hass.services.calls, [])
+
     async def test_unbound_never_actuates_and_registers_contract(self):
-        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
+        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.1.0')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.1.1')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])

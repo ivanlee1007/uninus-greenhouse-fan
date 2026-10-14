@@ -31,6 +31,7 @@ class FanGroup:
         self.controller = Controller(_entry_policy(entry))
         for fan, mode in registry.manual_modes.items():
             self.controller.set_mode(fan, mode)
+        self.active = True
         self._lock = asyncio.Lock()
         self._unsubs = []
 
@@ -55,6 +56,7 @@ class FanGroup:
         if not compatible_sensor(self.hass.states.get(temperature), "temperature") or not compatible_sensor(self.hass.states.get(humidity), "humidity"):
             raise ValueError("Temperature requires °C and humidity requires %")
         async with self._lock:
+            self._require_active()
             result = await self.registry.bind(revision, fan, temperature, humidity, self.hass.states)
             self.controller.reset(fan)
             return {**result, "policy": self.controller.policy.as_dict(), "runtime": self.snapshot()["runtime"]}
@@ -64,10 +66,12 @@ class FanGroup:
         if fan not in self.registry.bindings or mode not in ("on", "off", "auto"):
             raise ValueError("Fan is not bound or mode is invalid")
         async with self._lock:
+            self._require_active()
             if mode != "auto" and self._fan_state(fan) not in ("on", "off"):
                 raise ValueError("Fan state unavailable")
             # Save the hold first: if device service fails, automation remains held.
             await self.registry.set_mode(fan, mode)
+            self._require_active()
             self.controller.set_mode(fan, mode)
             if mode != "auto":
                 await self.hass.services.async_call(
@@ -79,8 +83,12 @@ class FanGroup:
     async def evaluate_all(self) -> None:
         """The same persistent-duration gate runs on every periodic evaluation."""
         async with self._lock:
+            if not self.active:
+                return
             now = monotonic()
             for fan, binding in tuple(self.registry.bindings.items()):
+                if not self.active:
+                    return
                 temperature = safe_reading(self.hass.states.get(binding["temperature_entity"]), "temperature")
                 humidity = safe_reading(self.hass.states.get(binding["humidity_entity"]), "humidity")
                 action = self.controller.evaluate(fan, True, self._fan_state(fan), temperature, humidity, now)
@@ -111,15 +119,30 @@ class FanGroup:
         async with self._lock:
             self.controller.set_policy(_entry_policy(entry))
 
+    def _require_active(self) -> None:
+        if not self.active:
+            raise ValueError("Fan control group is unloaded")
+
     def stop(self) -> None:
+        self.active = False
         for unsubscribe in self._unsubs:
             unsubscribe()
         self._unsubs.clear()
 
 
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Keep discovery available even when all entries are unloaded."""
+    from .websocket import register_commands
+
+    data = hass.data.setdefault(DOMAIN, {})
+    if not data.get("_commands_registered"):
+        register_commands(hass)
+        data["_commands_registered"] = True
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Load authoritative bindings; register commands once for all entries."""
-    from .websocket import register_commands
     from .frontend import async_ensure_card_resource
 
     data = hass.data.setdefault(DOMAIN, {})
@@ -128,9 +151,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     registry = Registry(entry.entry_id, await store.async_load(), store.async_save)
     group = FanGroup(hass, entry, registry)
     data[entry.entry_id] = group
-    if not data.get("_commands_registered"):
-        register_commands(hass)
-        data["_commands_registered"] = True
+    await async_setup(hass, {})
     group.start()
     return True
 

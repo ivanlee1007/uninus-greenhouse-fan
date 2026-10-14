@@ -33,9 +33,9 @@ test('card registers, requests authoritative snapshot and renders global above f
   assert.equal(typeof Card.getConfigElement,'function');
   assert.equal(Card.getStubConfig().layout,'auto');
   const calls=[]; const card=new Card(); card.setConfig(config);
-  card.hass={states,callWS:async msg=>{calls.push(msg);return snapshot();}};
+  card.hass={states,callWS:async msg=>{calls.push(msg);return msg.type.endsWith('/groups')?groups:snapshot();}};
   await flush();
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[0])),{type:'uninus_greenhouse_fan/get',entry_id:'group-1'});
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[1])),{type:'uninus_greenhouse_fan/get',entry_id:'group-1'});
   const html=card.shadowRoot.innerHTML;
   assert.ok(html.indexOf('class="global"')<html.indexOf('class="fans"'));
   assert.match(html,/32\.5/); assert.match(html,/73/);
@@ -45,7 +45,7 @@ test('card registers, requests authoritative snapshot and renders global above f
 
 test('unbound and unavailable sensors remain safe and never infer another source', async () => {
   const {Card}=setup(); const card=new Card();card.setConfig({...config,items:[...config.items,{fan_entity:'fan.b',name:'Rear'}]});
-  card.hass={states:{...states,'sensor.t':{state:'unavailable',attributes:{}}},callWS:async()=>snapshot()};
+  card.hass={states:{...states,'sensor.t':{state:'unavailable',attributes:{}}},callWS:async msg=>msg.type.endsWith('/groups')?groups:snapshot()};
   await flush();
   assert.match(card.shadowRoot.innerHTML,/未綁定/);assert.match(card.shadowRoot.innerHTML,/—/);
   assert.doesNotMatch(card.shadowRoot.innerHTML,/sensor\.fan_b/);
@@ -53,21 +53,21 @@ test('unbound and unavailable sensors remain safe and never infer another source
 
 test('manual command sends exact mode and awaits backend snapshot without optimistic toggle', async () => {
   const {Card}=setup();let resolveManual; const calls=[];const card=new Card();card.setConfig(config);
-  card.hass={states,callWS:msg=>{calls.push(msg);return msg.type.endsWith('/manual')?new Promise(r=>resolveManual=r):Promise.resolve(snapshot());}};
+  card.hass={states,callWS:msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return Promise.resolve(groups);return msg.type.endsWith('/manual')?new Promise(r=>resolveManual=r):Promise.resolve(snapshot());}};
   await flush(); const pending=card.manual('fan.a','off');
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[1])),{type:'uninus_greenhouse_fan/manual',entry_id:'group-1',fan_entity:'fan.a',mode:'off'});
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[2])),{type:'uninus_greenhouse_fan/manual',entry_id:'group-1',fan_entity:'fan.a',mode:'off'});
   assert.match(card.shadowRoot.innerHTML,/已開啟/);
   resolveManual(snapshot());await pending;
 });
 
 test('editor applies binding at observed revision; Lovelace config has no sensor copies', async () => {
   const {Editor}=setup(); const editor=new Editor();editor.setConfig(config);
-  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);return msg.type.endsWith('/bind')?snapshot(3):snapshot(2);}};
+  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return groups;return msg.type.endsWith('/bind')?snapshot(3):snapshot(2);}};
   await flush();
   editor.setItemField(0,'temperature_entity','sensor.t');
   editor.setItemField(0,'humidity_entity','sensor.h');
   await editor.applyBinding(0);
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[1])),{type:'uninus_greenhouse_fan/bind',entry_id:'group-1',expected_revision:2,fan_entity:'fan.a',temperature_entity:'sensor.t',humidity_entity:'sensor.h'});
+  assert.deepEqual(JSON.parse(JSON.stringify(calls[2])),{type:'uninus_greenhouse_fan/bind',entry_id:'group-1',expected_revision:2,fan_entity:'fan.a',temperature_entity:'sensor.t',humidity_entity:'sensor.h'});
   assert.equal(editor.snapshot.revision,3);
   assert.equal(editor.config.items[0].temperature_entity,undefined);
   editor.setItemField(0,'name','Updated');
@@ -76,7 +76,7 @@ test('editor applies binding at observed revision; Lovelace config has no sensor
 
 test('switch relay appears in fallback editor picker', async () => {
   const {Editor}=setup();const editor=new Editor();editor.setConfig(config);
-  editor.hass={states,callWS:async()=>snapshot()};await flush();
+  editor.hass={states,callWS:async msg=>msg.type.endsWith('/groups')?groups:snapshot()};await flush();
   assert.match(editor.shadowRoot.innerHTML,/switch\.relay/);
   editor.setItemField(0,'fan_entity','switch.relay');
   assert.equal(editor.events.at(-1).detail.config.items[0].fan_entity,'switch.relay');
@@ -84,7 +84,7 @@ test('switch relay appears in fallback editor picker', async () => {
 
 test('failed bind preserves draft and revision; removing item does not unbind', async () => {
   const {Editor}=setup(); const editor=new Editor();editor.setConfig(config);
-  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/bind'))throw Error('Revision conflict');return snapshot();}};
+  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return groups;if(msg.type.endsWith('/bind'))throw Error('Revision conflict');return snapshot();}};
   await flush();editor.setItemField(0,'temperature_entity','sensor.t');editor.setItemField(0,'humidity_entity','sensor.h');
   await editor.applyBinding(0);
   assert.equal(editor.drafts[0].temperature_entity,'sensor.t');
@@ -93,4 +93,126 @@ test('failed bind preserves draft and revision; removing item does not unbind', 
   editor.removeItem(0);
   assert.equal(calls.filter(x=>x.type.endsWith('/bind')).length,1);
   assert.equal(editor.config.items.length,0);
+});
+
+const groups = [{entry_id:'group-1',name:'North greenhouse',loaded:true}];
+const groupHass = (rows=groups, extra=()=>snapshot()) => ({states,callWS:async msg=>msg.type.endsWith('/groups')?rows:extra(msg)});
+test('YAML and editor resolve a unique loaded group without typing its ID', async () => {
+  const {Card,Editor}=setup();
+  for (const Class of [Card,Editor]) {
+    const el=new Class();el.setConfig({...config,entry_id:''});el.hass=groupHass();await flush();
+    assert.equal(el.snapshot?.revision,2);
+    assert.equal(el.resolvedId,'group-1');
+    assert.doesNotMatch(el.shadowRoot.innerHTML,/Integration entry_id|input data-config="entry_id"/);
+    if(Class===Editor)assert.equal(el.events.at(-1).detail.config.entry_id,'group-1');
+  }
+});
+
+const multi=[...groups,{entry_id:'group-2',name:'South greenhouse',loaded:true}];
+const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}};
+test('selection restores group-scoped drafts and ignores old bind completion', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();
+  el.hass=groupHass(multi,msg=>msg.type.endsWith('/bind')?pending.promise:snapshot());await flush();
+  el.setItemField(0,'temperature_entity','sensor.h');
+  const bind=el.applyBinding(0);el.selectGroup('group-2');await flush();
+  assert.equal(el.drafts[0].temperature_entity,undefined);
+  pending.resolve(snapshot(99));await bind;
+  assert.equal(el.snapshot.revision,2);assert.equal(el.status[0],undefined);
+  el.selectGroup('group-1');await flush();
+  assert.equal(el.drafts[0].temperature_entity,'sensor.h');
+});
+test('manual completion after scope change cannot refresh or clear the new operation', async () => {
+  const {Card}=setup();const el=new Card();el.setConfig(config);const pending=deferred();const calls=[];
+  el.hass=groupHass(multi,msg=>{calls.push(msg);return msg.type.endsWith('/manual')?pending.promise:snapshot()});await flush();
+  const action=el.manual('fan.a','off');el.selectGroup('group-2');await flush();const before=calls.length;
+  pending.reject(Error('old action failed'));await action;
+  assert.equal(el.error,'');assert.equal(calls.length,before);assert.equal(el.resolvedId,'group-2');
+});
+test('explicit missing or unloaded saved groups cannot dispatch manual writes', async () => {
+  const {Card}=setup();
+  for(const rows of [groups,[{...groups[0],entry_id:'gone',loaded:false},...groups]]) {
+    const calls=[];const el=new Card();el.setConfig({...config,entry_id:'gone'});
+    el.hass=groupHass(rows,msg=>{calls.push(msg);return snapshot()});await flush();
+    await el.manual('fan.a','on');assert.equal(calls.length,0);assert.equal(el.resolvedId,'');
+    assert.equal(el.config.entry_id,'gone');assert.match(el.shadowRoot.innerHTML,/不存在|尚未載入/);
+  }
+});
+
+test('typing a new draft during pending bind must retain new input', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();
+  el.hass=groupHass(groups,msg=>msg.type.endsWith('/bind')?pending.promise:snapshot());await flush();
+  el.setItemField(0,'temperature_entity','sensor.t');const operation=el.applyBinding(0);
+  el.setItemField(0,'temperature_entity','sensor.h');pending.resolve(snapshot(3));await operation;
+  assert.equal(el.drafts[0].temperature_entity,'sensor.h');assert.equal(el.drafts[0].revision,2);
+});
+test('discovery distinguishes multi, zero, unloaded and query failure for card and editor', async () => {
+  const {Card,Editor}=setup();
+  for(const Class of [Card,Editor])for(const rows of [multi,[],[{...groups[0],loaded:false}]]) {
+    const calls=[];const el=new Class();el.setConfig({...config,entry_id:''});el.hass=groupHass(rows,msg=>{calls.push(msg);return snapshot()});await flush();
+    assert.equal(el.snapshot,null);assert.equal(calls.length,0);
+    assert.match(el.shadowRoot.innerHTML,rows.length?/select data-group/:/href="\/config\/integrations"/);
+    if(rows===multi){el.selectGroup('group-2');await flush();assert.equal(el.resolvedId,'group-2')}
+  }
+  for(const Class of [Card,Editor]) {
+    const el=new Class();el.setConfig({...config,entry_id:''});el.hass={states,callWS:async()=>{throw Error('network failure')}};await flush();
+    assert.match(el.shadowRoot.innerHTML,/network failure/);assert.doesNotMatch(el.shadowRoot.innerHTML,/尚無控制群組/);
+  }
+});
+test('latest snapshot request wins and disconnect invalidates discovery, snapshot and mutation', async () => {
+  const {Card,Editor}=setup();
+  for(const Class of [Card,Editor]) {
+    const el=new Class();el.setConfig(config);const old=deferred();let reads=0;
+    el.hass=groupHass(groups,()=>++reads===1?old.promise:snapshot(7));await flush();
+    await el.load();old.resolve(snapshot(99));await flush();assert.equal(el.snapshot.revision,7);
+    const discovery=deferred();el.hass={states,callWS:()=>discovery.promise};const loading=el.load();el.disconnectedCallback();
+    discovery.resolve(groups);await loading;assert.equal(el.snapshot,null);assert.equal(el.loading,false);
+    const html=el.shadowRoot.innerHTML;await el.load();assert.equal(el.shadowRoot.innerHTML,html);
+  }
+});
+
+test('explicit discard reconciles a retained dirty revision without a write', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);let revision=2;let writes=0;
+  el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/bind'))writes++;return snapshot(revision)});await flush();
+  el.setItemField(0,'temperature_entity','sensor.h');revision=8;await el.load();
+  assert.equal(el.drafts[0].revision,2);
+  el.discardDraft(0);assert.equal(el.drafts[0].revision,undefined);
+  el.setItemField(0,'temperature_entity','sensor.t');assert.equal(el.drafts[0].revision,8);
+  assert.equal(writes,0);
+});
+
+test('unique loaded choice ignores unloaded alternatives without replacing explicit choices', async () => {
+  const {Card,Editor}=setup();
+  for(const Class of [Card,Editor]) {
+    const el=new Class();el.setConfig({...config,entry_id:''});el.hass=groupHass([groups[0],{...multi[1],loaded:false}]);await flush();
+    assert.equal(el.resolvedId,'group-1');assert.equal(el.snapshot.revision,2);
+  }
+});
+test('disconnect invalidates late bind and manual completion without rendering or dispatching', async () => {
+  const {Card,Editor}=setup();
+  for(const Class of [Card,Editor])for(const reject of [false,true]) {
+    const el=new Class();el.setConfig(config);const late=deferred();const calls=[];
+    el.hass=groupHass(groups,msg=>{calls.push(msg);return msg.type.endsWith('/get')?snapshot():late.promise});await flush();
+    if(Class===Editor)el.setItemField(0,'temperature_entity','sensor.t');
+    const action=Class===Card?el.manual('fan.a','off'):el.applyBinding(0);const html=el.shadowRoot.innerHTML;
+    el.disconnectedCallback();const count=calls.length;
+    reject?late.reject(Error('stale failure')):late.resolve(snapshot(99));await action;
+    assert.equal(el.snapshot,null);assert.equal(el.error,'');assert.equal(el.shadowRoot.innerHTML,html);assert.equal(calls.length,count);
+    if(Class===Editor)assert.equal(el.drafts[0].temperature_entity,'sensor.t');
+  }
+});
+
+test('automatic re-resolution never sends a command using the previous group snapshot', async () => {
+  const {Card}=setup();const el=new Card();el.setConfig({...config,entry_id:''});el.hass=groupHass();await flush();
+  const next=deferred(),writes=[];
+  el.hass=groupHass([multi[1]],msg=>{if(msg.type.endsWith('/manual')){writes.push(msg);return snapshot()}return next.promise});
+  const read=el.load();await flush();assert.equal(el.resolvedId,'group-2');
+  await el.manual('fan.a','on');assert.equal(writes.length,0);assert.equal(el.snapshot,null);
+  next.resolve({...snapshot(),entry_id:'group-2'});await read;
+});
+
+test('switching groups preserves distinct drafts for duplicate displayed fans', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig({...config,items:[config.items[0],{...config.items[0],name:'Second view'}]});el.hass=groupHass(multi);await flush();
+  el.setItemField(0,'temperature_entity','sensor.t');el.setItemField(1,'temperature_entity','sensor.h');
+  el.selectGroup('group-2');await flush();el.selectGroup('group-1');await flush();
+  assert.equal(el.drafts[0].temperature_entity,'sensor.t');assert.equal(el.drafts[1].temperature_entity,'sensor.h');
 });

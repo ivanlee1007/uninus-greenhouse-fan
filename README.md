@@ -15,6 +15,27 @@ Home Assistant custom integration and Lovelace card based on the approved **C �
 
 See the [implementation contract](docs/CONTRACT.md) and [approved offline v8 design](docs/design/v8/SPEC-v8.md). The reference demo is **not** production code.
 
+## Choosing a control group (0.1.1)
+
+1. Add the **UNiNUS Greenhouse Fan** integration in **Settings → Devices & services**, and give each greenhouse control group a recognizable name. Shared thresholds and duration remain in Integration Options.
+2. Add the **UNiNUS Greenhouse Fan** dashboard card. The card and visual editor discover control groups automatically—there is no internal ID to copy or type.
+3. If exactly one group is loaded, it connects automatically. Otherwise choose the named **控制群組** dropdown. Unloaded groups are shown but cannot be selected. With no groups, use the **Settings → Devices & services** link to add the integration. A failed discovery request is reported as an error, not as “no groups”; retry with **重新讀取綁定** in the editor (the runtime card polls).
+4. The editor emits `config-changed` with the selected internal reference; **Save** stores it in the dashboard. Choose fan display items and apply sensor bindings as before. Switching groups retains unsaved sensor drafts separately for each group during that editor session; it never applies those drafts to the other group. Refreshing does not advance a dirty draft’s original revision: use **捨棄草稿並核對來源**, inspect the current backend sources, and edit again to reconcile a conflict before reapplying.
+
+Existing card YAML with `entry_id` continues to work. A saved reference that is missing or unloaded is **never silently switched** to another group; controls stay disabled with a recovery message. Select another loaded group explicitly or repair/reload the original integration. YAML without `entry_id` can resolve the unique loaded group at runtime; with several loaded groups it waits for a named selection. For a durable multi-group choice, select and Save through the visual editor. An already-dispatched backend write cannot be undone by switching or closing the card, but its late result cannot overwrite the new group’s UI/drafts.
+
+Minimal YAML (no manual integration ID):
+
+```yaml
+type: custom:uninus-greenhouse-fan-card
+name: Greenhouse fans
+items:
+  - fan_entity: fan.front
+    name: Front
+layout: auto
+theme: dark
+```
+
 ## Local verification (no HA connection)
 
 ```sh
@@ -24,7 +45,7 @@ node --test tests/test_card.mjs
 python tests/verify_card_browser.py
 ```
 
-The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, and manual command. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
+The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, manual command, named group discovery/selection, missing/unloaded/error states, and lifecycle races. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
 
 ## HACS download
 

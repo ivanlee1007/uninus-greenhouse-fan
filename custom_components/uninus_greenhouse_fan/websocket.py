@@ -9,10 +9,25 @@ from .const import DOMAIN
 from .registry import Conflict
 
 
+@websocket_api.websocket_command({"type": f"{DOMAIN}/groups"})
+def ws_groups(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict) -> None:
+    """List actual config entries for authenticated clients, without writes."""
+    runtime = hass.data.get(DOMAIN, {})
+    connection.send_result(msg["id"], [
+        {"entry_id": entry.entry_id, "name": entry.title,
+         "loaded": runtime.get(entry.entry_id) is not None and runtime[entry.entry_id].active}
+        for entry in hass.config_entries.async_entries(DOMAIN)
+        if entry.domain == DOMAIN
+    ])
+
+
 def _group(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict):
-    group = hass.data.get(DOMAIN, {}).get(msg["entry_id"])
-    if group is None:
-        connection.send_error(msg["id"], "not_found", "Fan control group not found")
+    entry = next((entry for entry in hass.config_entries.async_entries(DOMAIN)
+                  if entry.domain == DOMAIN and entry.entry_id == msg["entry_id"]), None)
+    group = hass.data.get(DOMAIN, {}).get(msg["entry_id"]) if entry else None
+    if group is None or not group.active:
+        connection.send_error(msg["id"], "not_found", "Fan control group is missing or unloaded")
+        return None
     return group
 
 
@@ -79,5 +94,5 @@ async def ws_manual(hass: HomeAssistant, connection: websocket_api.ActiveConnect
 
 def register_commands(hass: HomeAssistant) -> None:
     """Register one command set even when several group entries exist."""
-    for command in (ws_get, ws_bind, ws_manual):
+    for command in (ws_groups, ws_get, ws_bind, ws_manual):
         websocket_api.async_register_command(hass, command)
