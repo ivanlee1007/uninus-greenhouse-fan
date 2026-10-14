@@ -54,6 +54,10 @@ class Decorator:
 module('homeassistant.components.websocket_api',websocket_command=Decorator.websocket_command,async_register_command=Decorator.async_register_command,require_admin=Decorator.require_admin,async_response=Decorator.async_response,ActiveConnection=Decorator.ActiveConnection)
 module('voluptuous',Required=lambda x:x,Schema=lambda x:x,All=lambda *args:args,Range=lambda **kwargs:kwargs,In=lambda x:x)
 package='custom_components.uninus_greenhouse_fan'
+# Explicit bypass: legacy fakes do not provide native helper coverage.
+async def bypass_native_helpers(group):
+    return None
+module(package+'.threshold_helpers', async_setup_helpers=bypass_native_helpers)
 module('custom_components').__path__=[str(ROOT.parent)]
 spec=importlib.util.spec_from_file_location(package,ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
 app=importlib.util.module_from_spec(spec);sys.modules[package]=app;spec.loader.exec_module(app)
@@ -380,7 +384,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
     async def test_unbound_never_actuates_and_registers_contract(self):
         self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual','uninus_greenhouse_fan/set_control_mode','uninus_greenhouse_fan/save_thresholds'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.4.0')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.5.0')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])

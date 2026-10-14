@@ -27,7 +27,8 @@
           "add_device": "Add device",
           "edit_device": "Edit device",
           "remove_device": "Remove device",
-          "policy": "Shared policy"
+          "policy": "Shared policy",
+          "threshold_entities": "Threshold entities (names and entity IDs)"
         }
       },
       "policy": {
@@ -39,6 +40,10 @@
           "humidity_off": "Stop at or below humidity (%)",
           "duration_seconds": "Required duration (seconds)"
         }
+      },
+      "threshold_entities": {
+        "title": "Threshold entities (names and entity IDs)",
+        "description": "Integration-managed native input_number entities: use their sliders or input_number.set_value. Bounds and step are managed by this integration. Removing the group automatically removes its four entities.\n\n{entities}"
       },
       "devices": {
         "title": "Configured devices",

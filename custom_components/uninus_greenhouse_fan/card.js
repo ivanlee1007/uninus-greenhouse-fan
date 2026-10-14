@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.4.0 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.5.0 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -54,7 +54,7 @@
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.4.0'}
+    static get buildVersion(){return '0.5.0'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }

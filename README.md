@@ -1,4 +1,4 @@
-# UNiNUS Greenhouse Fan 0.4.0
+# UNiNUS Greenhouse Fan 0.5.0
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -43,7 +43,7 @@ Measured collapsed four-device heights (CSS px), identical in light/dark themes;
 
 All 16 measured cases preserve 44×44px minimum control targets, zero horizontal overflow and unclipped reason/readout text. These are local real-Edge synthetic fixtures, not live dashboard measurements. Full measurements, computed colors and gate counts: `docs/verification/0.3.0-control-mode.json` (reruns also produce `tests/evidence/control-mode-layout.json`).
 
-## Shared threshold sliders (0.4.0, approved A)
+## Shared threshold sliders (introduced in 0.4.0, approved A)
 
 Expand the existing global strip to edit temperature and humidity in **two group boxes** (side-by-side wide, stacked narrow). Each group puts Start above Stop. The card editor and Dashboard Save still change only display configuration.
 
@@ -55,9 +55,96 @@ Expand the existing global strip to edit temperature and humidity in **two group
 
 Local browser gate compares the frozen approved A fixture with production at 390/500/720/1080px in both themes and auto/fixed-two layouts. It checks group/slider and whole-card composition, overflow, real pointer/keyboard editing, Save/Cancel, validation, permissions, conflicts, failures and lifecycle races. Production deliberately replaces demo-only saved messages with verified-backend/pending/conflict guidance and dynamic native duration; demo host controls are not shipped.
 
+## Native threshold entities (0.5.0)
+
+Architecture and compatibility boundary: [native threshold entities](docs/NATIVE_THRESHOLD_ENTITIES.md).
+
+Creating a greenhouse group automatically creates **exactly four native
+`input_number.*` entities**, one for each shared policy threshold:
+`temperature_on`, `temperature_off`, `humidity_on`, `humidity_off`. Existing
+groups receive them on load. They are actual HA `InputNumber` entities, not
+`number.*` replacements or state-machine-only placeholders. Names include the
+group's friendly title; opaque unique IDs use the persistent group identity,
+not its name or list position. Same-name groups are allowed and get distinct
+entities. EntityRegistry-selected entity IDs and user renames survive reload.
+
+Find their current friendly names and IDs under **Settings → Devices & services
+→ UNiNUS Greenhouse Fan → Configure → Threshold entities (names and entity
+IDs)**, or in that integration's Entities list. The read-only public group
+snapshot exposes `threshold_entities`, keyed by the four policy field names;
+read this mapping rather than constructing an entity ID from a group name.
+The native more-info/entity slider and standard `input_number.set_value`,
+`input_number.increment`, and `input_number.decrement` work from the frontend
+or automations under the caller's ordinary HA entity-control permissions.
+The card's existing all-four Save and native Shared policy form remain
+admin-only/unchanged and synchronize all four entity values.
+
+Each slider uses step **0.1**, units **°C** or **%**, temperature bounds normally
+**0–50**, humidity **0–100**. Saved legacy temperatures outside 0–50 are retained
+by extending the corresponding helper's bounds (the canonical policy still
+accepts −20–80). Initial values always come from the saved authoritative policy,
+never from restored helper state or old entry options. Every write merges into
+the latest policy under the group lock, validates the complete on/off pair,
+and durably verifies the existing group journal/Store transaction before
+publishing any changed helper values. Invalid pairs, nonfinite values and
+failed writes leave the prior effective policy and timers unchanged; quarantine
+makes the helpers unavailable and stops control. Successful changes restart
+policy timers, preserve global/individual manual holds, and never immediately
+switch an output. There are no helper state-change-to-policy listeners.
+
+**Management boundary:** these are integration-managed native entities, not
+user-created records in HA's native helper storage collection. They advertise
+`editable: false`; use the integration's Shared policy form for configuration.
+Min/max/step are integration-owned and cannot be edited through the native
+helper configuration dialog; no record is added to `input_number/list`, and
+the Helpers configuration page need not list them. Entity IDs/friendly names
+can be customized in the Entities page, and native more-info/dashboard entity
+controls can change their values. No YAML files or native helper store are
+written and HA's domain services are not replaced.
+
+**Unload versus delete:** unloading removes this group's runtime helper
+objects (HA may retain unavailable restored states) but preserves its four
+owned registry records so reload retains IDs/customizations. Removing the
+actual greenhouse group automatically drains queued/in-flight writes and
+removes its four runtime entities **and owned EntityRegistry records**.
+Ownership checks require both integration platform/unique ID and group
+association; unrelated user helpers and other groups are untouched. Missing
+helpers are safely recreated on the next group load. Partial creation cleans
+newly created owned entries and refuses to start the group.
+
+**Known native-service limitation, not a completed strict-boolean guarantee:**
+HA 2025.12's original `input_number.set_value` schema uses `Coerce(float)`.
+It converts a boolean to `1.0`/`0.0` *before* calling the entity, so the unchanged
+native service cannot distinguish it from a numeric value. Direct entity,
+WebSocket and native Shared policy writes reject booleans; the native service
+rejects nonfinite/invalid numeric candidates but may accept coerced booleans
+when the numeric candidate is valid. Strict native-service boolean rejection
+would require an upstream schema change or relaxing the no-global-override
+constraint. The real-HA tests explicitly reproduce this limitation.
+
+Automation example (replace the quoted placeholder with the **actual**
+`temperature_on` ID shown in the read-only list or current snapshot mapping;
+no entity ID below is claimed to exist):
+
+```yaml
+actions:
+  - action: input_number.set_value
+    target:
+      entity_id: "<actual temperature_on entity ID from Threshold entities>"
+    data:
+      value: 35.0
+```
+
+After the action, read that entity's state and the group's public snapshot:
+its `policy.temperature_on` must agree and `threshold_entities.temperature_on`
+must still point to the current entity ID. Adjust an off threshold first if
+lowering an on threshold would otherwise violate the pair. Dashboard Save
+still only saves display configuration; use the expanded card's explicit
+policy Save to atomically change four thresholds.
+
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.4.0` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.0` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -67,7 +154,7 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.4.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Display-only subtitle (introduced in 0.3.1)
 
@@ -92,7 +179,7 @@ subtitle_unit: true             # optional, defaults true; state unit only, neve
 
 A missing entity/state, `unknown`, `unavailable`, null, non-finite scalar or missing selected attribute renders **—**. A missing attribute never falls back to the state. Numeric 0 and boolean false remain visible. Arrays/objects use safely escaped JSON bounded to 256 characters; failed serialization renders **—**. One entity or attribute only: no templates or text/entity composition. The picker emits config changes immediately on authoritative `value-changed`, including clears, and keeps active search mounted through state refreshes.
 
-Historical subtitle verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Current 0.4.0 results and fingerprints are in `docs/verification/0.4.0-thresholds.json`. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
+Historical subtitle verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Current 0.5.0 results and fingerprints are in `docs/verification/0.5.0-thresholds.json`. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
 
 ## Migration and old YAML
 

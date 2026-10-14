@@ -27,7 +27,8 @@
           "add_device": "新增裝置",
           "edit_device": "編輯裝置",
           "remove_device": "移除裝置",
-          "policy": "共用控制門檻"
+          "policy": "共用控制門檻",
+          "threshold_entities": "門檻輔助實體（名稱與實體 ID）"
         }
       },
       "policy": {
@@ -39,6 +40,10 @@
           "humidity_off": "濕度低於或等於此值停止 (%)",
           "duration_seconds": "條件持續秒數"
         }
+      },
+      "threshold_entities": {
+        "title": "門檻輔助實體（名稱與實體 ID）",
+        "description": "整合管理的原生 input_number：可用滑桿或 input_number.set_value 調整。範圍與步長由整合管理；移除群組會自動移除這四個實體。\n\n{entities}"
       },
       "devices": {
         "title": "已設定裝置",

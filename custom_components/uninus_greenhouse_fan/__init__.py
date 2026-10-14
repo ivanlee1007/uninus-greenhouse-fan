@@ -43,6 +43,7 @@ class FanGroup:
         self.active = True
         self._lock = asyncio.Lock()
         self._unsubs = []
+        self.threshold_helpers = None
 
     def snapshot(self) -> dict:
         runtime = {}
@@ -55,6 +56,7 @@ class FanGroup:
         return {
             **self.registry.snapshot(),
             "policy": self.controller.policy.as_dict(),
+            "threshold_entities": self.threshold_helpers.mapping() if self.threshold_helpers else {},
             "runtime": runtime,
         }
 
@@ -114,6 +116,31 @@ class FanGroup:
                 self._manual_targets.clear()
             return self.snapshot()
 
+    async def save_helper_threshold(self, key, *, value=None, delta=None):
+        """Merge under the group lock, not from a stale helper value."""
+        from math import isfinite
+        from .threshold_helpers import KEYS
+        if key not in KEYS:
+            raise ValueError('Invalid threshold')
+        async with self._lock:
+            self._require_active()
+            if self.threshold_helpers is None:
+                raise ValueError('Threshold helpers are not ready')
+            entity = self.threshold_helpers.entities[key]
+            if delta is not None:
+                value = min(entity._maximum, max(entity._minimum,
+                    round(self.registry.policy[key] + delta, 10)))
+            if type(value) not in (int, float) or not isfinite(value):
+                raise ValueError('A finite number is required')
+            if not entity._minimum <= value <= entity._maximum:
+                raise ValueError('Threshold is outside the helper bounds')
+            policy = Policy(**{**self.registry.policy, key:value})
+            await self.registry.set_policy(policy.as_dict(), self.registry.policy_revision)
+            self._require_active()
+            self.controller.set_policy(policy)
+            self.threshold_helpers.sync()
+            return self.snapshot()
+
     async def save_policy(self, values, expected_revision):
         """Durable all-field transaction; no evaluation or output service here."""
         if not isinstance(values, dict) or set(values) != set(POLICY_KEYS):
@@ -124,6 +151,8 @@ class FanGroup:
             await self.registry.set_policy(policy.as_dict(), expected_revision)
             self._require_active()
             self.controller.set_policy(policy)
+            if self.threshold_helpers:
+                self.threshold_helpers.sync()
             return self.snapshot()
 
     async def save_thresholds(self, thresholds, expected_revision):
@@ -136,6 +165,8 @@ class FanGroup:
             await self.registry.set_policy(policy.as_dict(), expected_revision)
             self._require_active()
             self.controller.set_policy(policy)
+            if self.threshold_helpers:
+                self.threshold_helpers.sync()
             return self.snapshot()
 
     async def evaluate_all(self) -> None:
@@ -240,6 +271,8 @@ class FanGroup:
     def stop(self) -> None:
         self.active = False
         self.registry.close()
+        if self.threshold_helpers:
+            self.threshold_helpers.unavailable()
         for unsubscribe in self._unsubs:
             unsubscribe()
         self._unsubs.clear()
@@ -291,9 +324,18 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if registry.migrated:
         await persistence.save(registry.payload())
         registry.migrated = False
-    data[entry.entry_id] = group
-    await async_setup(hass, {})
-    group.start()
+    from .threshold_helpers import async_setup_helpers
+    try:
+        await async_setup_helpers(group)
+        data[entry.entry_id] = group
+        await async_setup(hass, {})
+        group.start()
+    except BaseException:
+        group.stop()
+        if group.threshold_helpers:
+            await group.threshold_helpers.async_unload()
+        data.pop(entry.entry_id, None)
+        raise
     return True
 
 
@@ -308,7 +350,8 @@ async def _async_drain_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Group -> registry matches mutation lock order. The registry lock covers
         # save() from before scheduling _prepare through durable publication.
         async with group._lock, group.registry._lock:
-            pass
+            if group.threshold_helpers:
+                await group.threshold_helpers.async_unload()
 
     task = asyncio.create_task(drain())
     cancelled = False
@@ -328,3 +371,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async with _lifecycle_lock(hass, entry):
         await _async_drain_entry(hass, entry)
     return True
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Delete only this group's owned helpers after all writes have drained."""
+    from .threshold_helpers import async_remove_owned_registry
+    async with _lifecycle_lock(hass, entry):
+        await _async_drain_entry(hass, entry)
+        async_remove_owned_registry(hass, entry)

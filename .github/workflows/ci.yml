@@ -21,7 +21,7 @@ jobs:
         run: |
           uv venv --python 3.13 .venv-ha
           uv pip install --python .venv-ha/bin/python -r tests_ha/requirements.txt
-      - name: Native HA config/options flows and Store regressions (no fake modules)
+      - name: Native HA flows, owned input_number services/lifecycle and Store regressions
         run: .venv-ha/bin/python -m unittest discover -s tests_ha -v
       - name: Lovelace contract tests
         run: node --test tests/test_card.mjs

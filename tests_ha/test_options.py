@@ -6,7 +6,7 @@ import sys
 import tempfile
 import types
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from homeassistant.core import HomeAssistant
@@ -19,6 +19,11 @@ from custom_components.uninus_greenhouse_fan.const import DOMAIN
 
 class OptionsTest(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        # Older native-policy fixtures intentionally omit native entity setup.
+        # Full native helper coverage lives separately in test_threshold_helpers.
+        helper_bypass = patch('custom_components.uninus_greenhouse_fan.threshold_helpers.async_setup_helpers', new=AsyncMock())
+        helper_bypass.start()
+        self.addCleanup(helper_bypass.stop)
         self.directory = tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR'))
         self.hass = HomeAssistant(self.directory.name)
         self.entry = ConfigEntry(domain=DOMAIN, title='North', data={}, options={}, source='user', version=1, minor_version=1, unique_id=None, discovery_keys={}, subentries_data=[])

@@ -81,7 +81,21 @@ class GreenhouseFanOptionsFlow(config_entries.OptionsFlow):
         return group if group and group.active else None
 
     async def async_step_init(self, user_input=None) -> FlowResult:
-        return self.async_show_menu(step_id='init', menu_options=['devices', 'add_device', 'edit_device', 'remove_device', 'policy'])
+        return self.async_show_menu(step_id='init', menu_options=['devices', 'add_device', 'edit_device', 'remove_device', 'policy', 'threshold_entities'])
+
+    async def async_step_threshold_entities(self, user_input=None):
+        if user_input is not None:
+            return await self.async_step_init()
+        group = self._group()
+        if group is None:
+            return self.async_abort(reason='group_unloaded')
+        lines = []
+        for key, identity in group.snapshot()['threshold_entities'].items():
+            state = self.hass.states.get(identity)
+            name = state.attributes.get('friendly_name', key) if state else key
+            lines.append(f'• {name} ({identity})')
+        return self.async_show_form(step_id='threshold_entities', data_schema=vol.Schema({}),
+            description_placeholders={'entities':'\n'.join(lines) or '—'})
 
     async def async_step_policy(self, user_input=None) -> FlowResult:
         group = self._group()
