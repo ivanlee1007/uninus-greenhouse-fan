@@ -1,4 +1,4 @@
-# UNiNUS Greenhouse Fan 0.2.0
+# UNiNUS Greenhouse Fan 0.2.1
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -21,13 +21,17 @@ Home Assistant integration with a Lovelace card based on the approved global-pol
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.2.0` manually as a module.
-2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown; no IDs need copying. Saved missing/unloaded references are never silently switched.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.2.1` manually as a module.
+2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary HA entity picker is offered. If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
 5. New choices store opaque `device_id`, independent of name/output, so they follow output edits. A deleted stable reference cannot fall back to a different output. Refresh and scope/disconnect races cannot replace new inventory or show stale manual results.
 
-The policy strip stays above the grid. Automatic layout uses the card's own width: 390/720/1080/1380px show 1/2/3/4 columns. Animation/readings follow real entity state, not optimistic toggles.
+The policy strip stays above the grid. Automatic layout uses the card's own width: 390/720/1080/1380px show 1/2/3/4 columns. Animation/readings follow real entity state, not optimistic toggles. Blades/hub are red and rotate only when the available output reports `on`, even with missing/unavailable sensors or manual-only configuration; other output states are neutral gray and paused. Reduced-motion disables animation, not running color.
+
+Disabled output diagnostics distinguish an entity absent from HA from reported `unknown`/`unavailable`, include the authoritative configured output ID/state and Settings guidance. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
+
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.2.1'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Migration and old YAML
 

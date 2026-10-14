@@ -28,6 +28,43 @@ with sync_playwright() as p:
       window.card=document.createElement('uninus-greenhouse-fan-card');document.body.appendChild(card);card.style.display='block';card.style.width='720px';card.setConfig({type:'custom:uninus-greenhouse-fan-card',entry_id:'group-1',name:'排熱風扇控制',items:[1,2,3,4].map(i=>({fan_entity:'fan.f'+i,name:'第 '+i+' 區排熱風扇'})),layout:'auto',theme:'dark'});card.hass=fakeHass;
     }''')
     page.wait_for_function("document.querySelector('uninus-greenhouse-fan-card').snapshot?.revision===1")
+    # Computed styles, not class names: output feedback alone controls rotation/color.
+    visual_checks=[]
+    for theme in ('dark','light'):
+        for output,sensors in [('off','healthy'),('on','healthy'),('unknown','healthy'),('unavailable','healthy'),('missing','healthy'),('on','absent'),('on','unavailable'),('on','missing')]:
+            page.evaluate('''(args)=>{
+              const [theme,output,sensors]=args;
+              window.visual=document.createElement('uninus-greenhouse-fan-card');document.body.appendChild(visual);
+              const target='switch.uss_p130_f5_relay0',v=structuredClone(snap);
+              v.devices=[{device_id:'p130',name:'P130',fan_entity:target}];
+              v.bindings=sensors==='absent'?{}:{[target]:{temperature_entity:'sensor.t1',humidity_entity:'sensor.h1'}};
+              const states={...fakeHass.states};if(output!=='missing')states[target]={state:output};
+              if(sensors==='unavailable')states['sensor.t1']={state:'unavailable'};
+              if(sensors==='missing')delete states['sensor.t1'];
+              visual.setConfig({entry_id:'group-1',theme,items:[{device_id:'p130',fan_entity:'fan.stale'}]});
+              visual.hass={states,callWS:async msg=>msg.type.endsWith('/groups')?[{entry_id:'group-1',loaded:true}]:v};
+            }''',[theme,output,sensors])
+            page.wait_for_function('visual.snapshot && !visual.loading')
+            result=page.evaluate('''()=>{
+              const s=visual.shadowRoot,r=s.querySelector('.rotor'),h=getComputedStyle(s.querySelector('.hub'));
+              return {fill:getComputedStyle(s.querySelector('.rotor path')).fill,animation:getComputedStyle(r).animationPlayState,name:getComputedStyle(r).animationName,hub:h.backgroundImage,hubBorder:h.borderTopColor,selector:!!s.querySelector('select[data-group]'),enabled:!s.querySelector('button[data-mode="on"]').disabled,reason:s.querySelector('.reason').innerText};
+            }''')
+            running=output=='on'
+            assert result['fill']==('rgb(220, 91, 86)' if running else 'rgb(138, 148, 153)'),(theme,output,sensors,result)
+            assert result['animation']==('running' if running else 'paused'),(theme,output,sensors,result)
+            assert result['selector'] is False,result
+            assert result['enabled']==(output in ('on','off')),result
+            assert result['hubBorder']==('rgb(241, 155, 139)' if running else 'rgb(171, 181, 186)'),result
+            if output in ('missing','unknown','unavailable'):
+                assert 'switch.uss_p130_f5_relay0' in result['reason'],result
+                assert page.locator('uninus-greenhouse-fan-card').last.locator('a[href="/config/integrations"]').count()==1
+            if running:
+                page.emulate_media(reduced_motion='reduce')
+                assert page.evaluate("()=>getComputedStyle(visual.shadowRoot.querySelector('.rotor')).animationName")=='none'
+                assert page.evaluate("()=>getComputedStyle(visual.shadowRoot.querySelector('.rotor path')).fill")=='rgb(220, 91, 86)'
+                page.emulate_media(reduced_motion='no-preference')
+            visual_checks.append({'theme':theme,'output':output,'sensors':sensors,**result})
+            page.evaluate('()=>visual.remove()')
     measurements={}
     for width,expected in [(390,1),(720,2),(1080,3),(1380,4)]:
         page.evaluate('(w)=>card.style.width=w+"px"',width)
@@ -97,8 +134,13 @@ with sync_playwright() as p:
         page.wait_for_function('probe.groups?.length===2 && !probe.loading')
         assert page.evaluate('()=>probe.snapshot===null')
         select=page.locator(tag).locator('select[data-group]')
-        assert 'South greenhouse' in select.inner_text()
-        select.select_option('group-2')
+        if kind=='editor':
+            assert 'South greenhouse' in select.inner_text()
+            select.select_option('group-2')
+        else:
+            assert select.count()==0
+            assert '多個控制群組' in page.locator(tag).locator('[role="alert"]').inner_text()
+            page.evaluate('()=>probe.setConfig({...probe.config,entry_id:"group-2"})')
         page.wait_for_function('probe.snapshot?.entry_id==="group-2"')
         if kind=='editor':
             assert page.evaluate('()=>probeEvents.at(-1).entry_id')=='group-2'
@@ -151,7 +193,8 @@ with sync_playwright() as p:
     card_locator=page.locator('uninus-greenhouse-fan-card')
     card_locator.locator('button[data-mode="off"]').click()
     page.wait_for_function('typeof rejectManual==="function"')
-    card_locator.locator('select[data-group]').select_option('group-2')
+    assert card_locator.locator('select[data-group]').count()==0
+    page.evaluate('()=>probe.setConfig({...probe.config,entry_id:"group-2"})')
     page.wait_for_function('probe.snapshot?.entry_id==="group-2"')
     page.evaluate('()=>{window.beforeReject=probeCalls.length;rejectManual(Error("stale manual error"))}')
     page.wait_for_timeout(20)
@@ -215,7 +258,7 @@ with sync_playwright() as p:
     # Manual-only relay: actual visible clicks, HA mocked, no hardware/network.
     page.evaluate('''() => {
       window.unboundCalls=[];
-      const target='switch.manual_only';
+      const target='switch.uss_p130_f5_relay0';
       window.manualSnap={entry_id:'group-1',revision:0,devices:[{device_id:'manual',name:'Manual only',fan_entity:target}],policy:snap.policy,bindings:{},runtime:{}};
       window.manualCard=document.createElement('uninus-greenhouse-fan-card');
       document.body.appendChild(manualCard);
@@ -235,15 +278,38 @@ with sync_playwright() as p:
     assert '僅手動控制' in manual_locator.locator('.reason').inner_text()
     for mode in ('on', 'off'):
         manual_locator.locator(f'button[data-mode="{mode}"]').click()
-        page.wait_for_function('(mode)=>manualCard.snapshot.runtime["switch.manual_only"].mode===mode',arg=mode)
+        page.wait_for_function('(mode)=>manualCard.snapshot.runtime["switch.uss_p130_f5_relay0"].mode===mode',arg=mode)
         assert manual_locator.locator('button.resume').is_enabled()
     manual_locator.locator('button.resume').click()
-    page.wait_for_function('manualCard.snapshot.runtime["switch.manual_only"].mode==="auto"')
+    page.wait_for_function('manualCard.snapshot.runtime["switch.uss_p130_f5_relay0"].mode==="auto"')
     assert '自動未啟用' in manual_locator.locator('.reason').inner_text()
     assert manual_locator.locator('button.resume').count()==0
     assert page.evaluate('()=>unboundCalls.map(x=>[x.entry_id,x.fan_entity,x.mode])')==[
-        ['group-1','switch.manual_only','on'],['group-1','switch.manual_only','off'],['group-1','switch.manual_only','auto']]
+        ['group-1','switch.uss_p130_f5_relay0','on'],['group-1','switch.uss_p130_f5_relay0','off'],['group-1','switch.uss_p130_f5_relay0','auto']]
+    manual_matrix=[]
+    for output in ('on','off'):
+        for sensors in ('absent','healthy','unavailable'):
+            page.evaluate('''args=>{
+              const [output,sensors]=args,target='switch.uss_p130_f5_relay0';
+              manualSnap.bindings=sensors==='absent'?{}:{[target]:{temperature_entity:'sensor.t1',humidity_entity:'sensor.h1'}};
+              const states={...fakeHass.states,[target]:{state:output}};
+              if(sensors==='unavailable')states['sensor.t1']={state:'unavailable'};
+              manualCard.hass={...manualCard.hass,states};
+              manualCard.load();
+            }''',[output,sensors])
+            page.wait_for_function('!manualCard.loading')
+            for mode in ('on','off','auto'):
+                button=manual_locator.locator('button.resume' if mode=='auto' else f'button[data-mode="{mode}"]')
+                assert button.is_enabled(),(output,sensors,mode)
+                before=page.evaluate('()=>unboundCalls.length')
+                button.click()
+                page.wait_for_function('(n)=>unboundCalls.length===n+1 && !manualCard.operation',arg=before)
+                assert page.evaluate('()=>unboundCalls.at(-1).mode')==mode
+            manual_matrix.append([output,sensors])
     page.evaluate('()=>manualCard.remove()')
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card').buildVersion")=='0.2.1'
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card-editor').buildVersion")=='0.2.1'
+    (OUT/'runtime-state-matrix.json').write_text(json.dumps({'visual_checks':visual_checks,'manual_matrix':manual_matrix,'errors':errors},ensure_ascii=False,indent=2),encoding='utf-8')
     assert not errors,errors
     browser.close()
 print(json.dumps({'browser':'Edge headless','measurements':{str(w):{'row':m['row'],'global_above':m['above'],'overflow':m['overflow']} for w,m in measurements.items()},'discovery':discovery_checks,'lifecycle_races':'passed','editor_configured_devices':'passed','manual':'passed','unbound_manual_on_off_resume':'passed','errors':errors},ensure_ascii=False))

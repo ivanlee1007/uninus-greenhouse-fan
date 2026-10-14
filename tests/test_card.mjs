@@ -54,6 +54,38 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
+test('loaded custom elements expose readable 0.2.1 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.2.1');assert.equal(Editor.buildVersion,'0.2.1');
+});
+const targetSwitch='switch.uss_p130_f5_relay0';
+test('exact configured P130 output manual gating is independent of sensor health', async () => {
+  const {Card}=setup();
+  for(const output of ['on','off'])for(const sensors of ['absent','healthy','unavailable']) {
+    const el=new Card(),writes=[];
+    el.setConfig({...config,items:[{device_id:'p130',fan_entity:'fan.stale'}]});
+    const view={...snapshot(),devices:[{device_id:'p130',name:'P130',fan_entity:targetSwitch}],bindings:sensors==='absent'?{}:{[targetSwitch]:{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{}};
+    el.hass={states:{...states,[targetSwitch]:{state:output},...(sensors==='unavailable'?{'sensor.t':{state:'unavailable'},'sensor.h':{state:'unavailable'}}:{})},callWS:async msg=>{if(msg.type.endsWith('/groups'))return groups;if(msg.type.endsWith('/manual'))writes.push(msg);return view}};await flush();
+    for(const mode of ['on','off','auto']) {assert.equal(el.canManual(targetSwitch,mode),true);await el.manual(targetSwitch,mode)}
+    assert.deepEqual(writes.map(x=>[x.entry_id,x.fan_entity,x.mode]),['on','off','auto'].map(mode=>['group-1',targetSwitch,mode]));
+    assert.doesNotMatch(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
+  }
+});
+test('disabled configured output diagnostics distinguish absent and reported unknown/unavailable', async () => {
+  const {Card}=setup();
+  for(const value of [null,'unknown','unavailable']) {
+    const el=new Card();el.setConfig({...config,items:[{device_id:'p130',fan_entity:'fan.stale'}]});
+    el.hass={...groupHass(groups,()=>({...snapshot(),devices:[{device_id:'p130',fan_entity:targetSwitch}]})),states:value?{[targetSwitch]:{state:value}}:{}};await flush();
+    const html=el.renderFan(el.config.items[0]);
+    assert.match(html,/switch\.uss_p130_f5_relay0/);assert.doesNotMatch(html,/fan\.stale/);
+    assert.match(html,value?new RegExp('回報狀態：'+value):/實體不存在/);
+    assert.match(html,/href="\/config\/integrations"/);assert.match(html,/data-mode="on" disabled/);
+  }
+});
+test('deleted stable identity diagnostics never reuse stale YAML output or its on state', async () => {
+  const {Card}=setup();const el=new Card();el.setConfig({...config,items:[{device_id:'deleted-stable',fan_entity:'fan.a'}]});
+  el.hass=groupHass(groups,()=>({...snapshot(),devices:[]}));await flush();
+  const html=el.renderFan(el.config.items[0]);assert.match(html,/已儲存裝置已刪除|已儲存裝置不存在/);assert.match(html,/deleted-stable/);assert.match(html,/編輯卡片/);assert.match(html,/href="\/config\/integrations"/);assert.doesNotMatch(html,/已開啟|data-fan="fan.a"/);
+});
 const flush = () => new Promise(resolve => setTimeout(resolve,0));
 
 test('card registers, requests authoritative snapshot and renders global above fan grid', async () => {
@@ -158,6 +190,8 @@ test('YAML and editor resolve a unique loaded group without typing its ID', asyn
     assert.equal(el.snapshot?.revision,2);
     assert.equal(el.resolvedId,'group-1');
     assert.doesNotMatch(el.shadowRoot.innerHTML,/Integration entry_id|input data-config="entry_id"/);
+    if(Class===Card)assert.doesNotMatch(el.shadowRoot.innerHTML,/select data-group/);
+    else assert.match(el.shadowRoot.innerHTML,/select data-group/);
     if(Class===Editor)assert.equal(el.events.at(-1).detail.config.entry_id,'group-1');
   }
 });
@@ -173,7 +207,7 @@ test('selection restores group-scoped display names and ignores old snapshot com
 test('manual completion after scope change cannot refresh or clear the new operation', async () => {
   const {Card}=setup();const el=new Card();el.setConfig(config);const pending=deferred();const calls=[];
   el.hass=groupHass(multi,msg=>{calls.push(msg);return msg.type.endsWith('/manual')?pending.promise:snapshot()});await flush();
-  const action=el.manual('fan.a','off');el.selectGroup('group-2');await flush();const before=calls.length;
+  const action=el.manual('fan.a','off');el.setConfig({...config,entry_id:'group-2'});await flush();const before=calls.length;
   pending.reject(Error('old action failed'));await action;
   assert.equal(el.error,'');assert.equal(calls.length,before);assert.equal(el.resolvedId,'group-2');
 });
@@ -198,8 +232,9 @@ test('discovery distinguishes multi, zero, unloaded and query failure for card a
   for(const Class of [Card,Editor])for(const rows of [multi,[],[{...groups[0],loaded:false}]]) {
     const calls=[];const el=new Class();el.setConfig({...config,entry_id:''});el.hass=groupHass(rows,msg=>{calls.push(msg);return snapshot()});await flush();
     assert.equal(el.snapshot,null);assert.equal(calls.length,0);
-    assert.match(el.shadowRoot.innerHTML,rows.length?/select data-group/:/href="\/config\/integrations"/);
-    if(rows===multi){el.selectGroup('group-2');await flush();assert.equal(el.resolvedId,'group-2')}
+    if(Class===Editor)assert.match(el.shadowRoot.innerHTML,rows.length?/select data-group/:/href="\/config\/integrations"/);
+    else {assert.doesNotMatch(el.shadowRoot.innerHTML,/select data-group/);assert.match(el.shadowRoot.innerHTML,/編輯卡片|設定/);if(rows===multi)assert.match(el.shadowRoot.innerHTML,/多個控制群組/);if(rows.length===1)assert.match(el.shadowRoot.innerHTML,/尚未載入/)}
+    if(rows===multi){if(Class===Editor)el.selectGroup('group-2');else el.setConfig({...config,entry_id:'group-2'});await flush();assert.equal(el.resolvedId,'group-2')}
   }
   for(const Class of [Card,Editor]) {
     const el=new Class();el.setConfig({...config,entry_id:''});el.hass={states,callWS:async()=>{throw Error('network failure')}};await flush();

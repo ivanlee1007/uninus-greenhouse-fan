@@ -42,6 +42,51 @@ class OptionsTest(unittest.IsolatedAsyncioTestCase):
         flow.hass = self.hass
         return flow
 
+    async def test_exact_p130_manual_ignores_sensor_health_but_rejects_invalid_outputs(self):
+        target = 'switch.uss_p130_f5_relay0'
+        self.hass.states.async_set(target, 'off')
+        device = await self.group.save_device(None, {**self.record, 'fan_entity':target})
+        calls = []
+        async def service(call):
+            calls.append((call.domain, call.service, dict(call.data)))
+        self.hass.services.async_register('switch', 'turn_on', service)
+        self.hass.services.async_register('switch', 'turn_off', service)
+        for output in ('on', 'off'):
+            for health in ('absent', 'healthy', 'unavailable', 'missing'):
+                self.hass.states.async_set('sensor.t', '30', {'device_class':'temperature','unit_of_measurement':'°C'})
+                record = {**self.record, 'fan_entity':target}
+                if health == 'absent':
+                    record.update(temperature_entity='', humidity_entity='')
+                await self.group.save_device(device['device_id'], record)
+                if health == 'unavailable':
+                    self.hass.states.async_set('sensor.t', 'unavailable')
+                elif health == 'missing':
+                    self.hass.states.async_remove('sensor.t')
+                self.hass.states.async_set(target, output)
+                for mode in ('on', 'off'):
+                    result = await self.group.manual(target, mode)
+                    self.assertEqual(result['runtime'][target]['mode'], mode)
+                    self.assertEqual(calls[-1], ('switch', 'turn_'+mode, {'entity_id':target}))
+                before = len(calls)
+                await self.group.manual(target, 'auto')
+                self.assertEqual(len(calls), before)
+        before = len(calls)
+        for value in ('unknown', 'unavailable', None):
+            if value is None:
+                self.hass.states.async_remove(target)
+            else:
+                self.hass.states.async_set(target, value)
+            for mode in ('on', 'off'):
+                with self.assertRaises(ValueError):
+                    await self.group.manual(target, mode)
+        self.hass.states.async_set('switch.unowned', 'on')
+        with self.assertRaises(ValueError):
+            await self.group.manual('switch.unowned', 'off')
+        self.group.active = False
+        with self.assertRaises(ValueError):
+            await self.group.manual(target, 'on')
+        self.assertEqual(len(calls), before)
+
     async def test_menu_device_save_reopen_cancel_and_native_selectors(self):
         flow = self.flow()
         menu = await flow.async_step_init()
