@@ -127,19 +127,63 @@ class FanGroup:
             if self.threshold_helpers is None:
                 raise ValueError('Threshold helpers are not ready')
             entity = self.threshold_helpers.entities[key]
+            minimum, maximum = entity.threshold_bounds
             if delta is not None:
-                value = min(entity._maximum, max(entity._minimum,
+                value = min(maximum, max(minimum,
                     round(self.registry.policy[key] + delta, 10)))
             if type(value) not in (int, float) or not isfinite(value):
                 raise ValueError('A finite number is required')
-            if not entity._minimum <= value <= entity._maximum:
+            if not minimum <= value <= maximum:
                 raise ValueError('Threshold is outside the helper bounds')
             policy = Policy(**{**self.registry.policy, key:value})
-            await self.registry.set_policy(policy.as_dict(), self.registry.policy_revision)
-            self._require_active()
-            self.controller.set_policy(policy)
-            self.threshold_helpers.sync()
-            return self.snapshot()
+            return await self._save_validated_policy(policy, self.registry.policy_revision)
+
+    async def _save_validated_policy(self, policy, expected_revision):
+        """Caller owns the group lock; metadata is preflight, never a save error."""
+        result = self.snapshot()
+        prepared = self.threshold_helpers.prepare_sync(policy.as_dict()) if self.threshold_helpers else None
+        await self.registry.set_policy(policy.as_dict(), expected_revision)
+        # Unload gates the group before it can acquire our mutation lock. Once
+        # verified persistence commits, stopping cannot turn success into a
+        # false save failure; keep the committed controller value but no control.
+        self.controller.set_policy(policy)
+        result.update(self.registry.snapshot())
+        result['policy'] = policy.as_dict()
+        for fan, status in result['runtime'].items():
+            status.update(self.controller.status(fan))
+        core_stopping = getattr(getattr(self.hass, 'state', None), 'value', None) == 'STOPPING'
+        if not self.active or core_stopping:
+            if core_stopping:
+                # The verified commit is already complete. Gate control, but do
+                # not change the shared Store's manual-hold commit semantics.
+                self.active = False
+                self.registry.close()
+                try:
+                    self.stop()
+                except Exception:
+                    import logging
+                    logging.getLogger(__name__).exception('Committed policy during shutdown; unavailable publication failed')
+            result['save_status'] = 'committed_group_stopping' if core_stopping else 'committed_group_unloaded'
+            result['save_warning'] = '門檻已儲存；群組正在停止，控制已停用，重新載入後會使用已儲存門檻。'
+            return result
+        try:
+            if self.threshold_helpers:
+                self.threshold_helpers.sync(prepared)
+        except Exception:
+            # The journal has already committed and read back. Never report
+            # "not saved" or encourage a second stale CAS after a UI fault.
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.exception('Policy revision %s committed; helper publication failed; control disabled', self.registry.policy_revision)
+            self.active = False
+            self.registry.close()
+            try:
+                self.stop()
+            except Exception:
+                logger.exception('Unable to publish unavailable helpers after committed policy')
+            result['save_status'] = 'committed_publication_failed'
+            result['save_warning'] = '門檻已儲存；顯示更新失敗，控制已停用。請重新載入整合。'
+        return result
 
     async def save_policy(self, values, expected_revision):
         """Durable all-field transaction; no evaluation or output service here."""
@@ -148,12 +192,7 @@ class FanGroup:
         policy = Policy(**values)
         async with self._lock:
             self._require_active()
-            await self.registry.set_policy(policy.as_dict(), expected_revision)
-            self._require_active()
-            self.controller.set_policy(policy)
-            if self.threshold_helpers:
-                self.threshold_helpers.sync()
-            return self.snapshot()
+            return await self._save_validated_policy(policy, expected_revision)
 
     async def save_thresholds(self, thresholds, expected_revision):
         """Four thresholds only; retain native duration under the same lock."""
@@ -162,12 +201,7 @@ class FanGroup:
         async with self._lock:
             self._require_active()
             policy = Policy(**{**self.registry.policy, **thresholds})
-            await self.registry.set_policy(policy.as_dict(), expected_revision)
-            self._require_active()
-            self.controller.set_policy(policy)
-            if self.threshold_helpers:
-                self.threshold_helpers.sync()
-            return self.snapshot()
+            return await self._save_validated_policy(policy, expected_revision)
 
     async def evaluate_all(self) -> None:
         """The same persistent-duration gate runs on every periodic evaluation."""

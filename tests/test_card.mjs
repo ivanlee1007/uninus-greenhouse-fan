@@ -26,6 +26,18 @@ const states = {
 };
 const snapshot = (revision=2) => ({entry_id:'group-1',revision,devices:['fan.a','fan.b','switch.relay'].map(fan=>({device_id:fan,name:fan,fan_entity:fan})),policy:{temperature_on:30,temperature_off:25,humidity_on:80,humidity_off:60,duration_seconds:120},bindings:{'fan.a':{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{'fan.a':{mode:'auto',pending:null,reason:'Ready'}}});
 const config = {type:'custom:uninus-greenhouse-fan-card',entry_id:'group-1',name:'House',items:[{fan_entity:'fan.a',name:'Front'}],layout:'auto',theme:'dark'};
+test('threshold save error contains one clear message and committed UI fault clears draft', async () => {
+  for(const committed of [false,true]){
+    const {Card}=setup(),el=new Card();el.setConfig(config);const view={...snapshot(),policy_revision:0};
+    el.hass={...groupHass(groups,msg=>{
+      if(!msg.type.endsWith('/save_thresholds'))return view;
+      if(!committed)throw {code:'save_failed',message:'門檻儲存失敗；草稿保留，請檢查日誌。'};
+      return {...view,policy_revision:1,policy:{...view.policy,temperature_on:35},save_status:'committed_publication_failed',save_warning:'門檻已儲存；顯示更新失敗，控制已停用。請重新載入整合。'};
+    }),user:{is_admin:true}};await flush();el.editThreshold('temperature_on',35);await el.saveThresholds();
+    if(committed){assert.equal(el.thresholdDraft,null);assert.match(el.policyNotice,/顯示更新失敗/)}
+    else{assert.equal((el.policyError.match(/門檻儲存失敗/g)||[]).length,1);assert.ok(el.thresholdDraft)}
+  }
+});
 test('threshold response rejects changed duration and stale revision without clearing draft', async () => {
   for(const override of [{policy_revision:0},{policy:{...snapshot().policy,temperature_on:35,duration_seconds:1}}]){
     const {Card}=setup(),el=new Card();el.setConfig(config);
@@ -143,8 +155,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.5.0 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.0');assert.equal(Editor.buildVersion,'0.5.0');
+test('loaded custom elements expose readable 0.5.1 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.1');assert.equal(Editor.buildVersion,'0.5.1');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

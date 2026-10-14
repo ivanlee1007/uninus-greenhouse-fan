@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.5.0 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.5.1 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -54,7 +54,7 @@
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.5.0'}
+    static get buildVersion(){return '0.5.1'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
@@ -155,8 +155,8 @@
         if(!current())return;
         const savedPolicy=this.snapshot.policy,changed=thresholdKeys.some(k=>savedPolicy[k]!==draft.values[k]);
         if(result?.entry_id!==operation.id || result.policy_revision!==draft.revision+(changed?1:0) || result.policy?.duration_seconds!==savedPolicy.duration_seconds || thresholdValidation(result.policy) || thresholdKeys.some(k=>result.policy[k]!==draft.values[k]))throw Error('儲存結果未能核對；請取消並重新讀取門檻。');
-        this.snapshot=result;this.thresholdDraft=null;this.policyNotice='已儲存門檻；重新開始條件計時，不會立即開關風扇。';
-      }catch(error){if(current())this.policyError=error?.code==='conflict'?'門檻已由其他介面修改；請取消草稿並重新讀取後調整。':'門檻儲存失敗；草稿保留。'+errorText(error)}
+        this.snapshot=result;this.thresholdDraft=null;this.policyNotice=result.save_warning || '已儲存門檻；重新開始條件計時，不會立即開關風扇。';
+      }catch(error){if(current())this.policyError=error?.code==='conflict'?'門檻已由其他介面修改；請取消草稿並重新讀取後調整。':(errorText(error).includes('門檻儲存失敗')?errorText(error):'門檻儲存失敗；草稿保留。'+errorText(error))}
       finally{if(!this.detached && this.operation===operation && this.epoch===operation.epoch){this.operation=null;this.render()}}
     }
     thresholdMarkup(){

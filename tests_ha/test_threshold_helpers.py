@@ -21,8 +21,18 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
         self.directory = tempfile.TemporaryDirectory(dir=os.environ.get('TMPDIR'))
         self.hass = HomeAssistant(self.directory.name)
         self.hass.config_entries = ConfigEntries(self.hass, {})
-        await er.async_load(self.hass)
+        if hasattr(dr, 'async_setup'):
+            dr.async_setup(self.hass)
         await dr.async_load(self.hass)
+        await er.async_load(self.hass)
+        from homeassistant import loader
+        from homeassistant.helpers import frame
+        frame.async_setup(self.hass)
+        loader.async_setup(self.hass)
+        # Load the real integration metadata for HA deprecation diagnostics.
+        import shutil
+        shutil.copytree(Path(__file__).resolve().parents[1] / 'custom_components', Path(self.directory.name) / 'custom_components')
+        await loader.async_get_integration(self.hass, DOMAIN)
         await input_number.async_setup(self.hass, {})
         self.entry = self.make_entry()
         self.saved = []
@@ -36,13 +46,164 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
         return entry
 
     async def asyncTearDown(self):
+        from custom_components.uninus_greenhouse_fan import async_unload_entry
         for group in list(self.hass.data.get(DOMAIN, {}).values()):
             if isinstance(group, FanGroup):
-                group.stop()
-                if getattr(group, 'threshold_helpers', None):
-                    await group.threshold_helpers.async_unload()
+                await async_unload_entry(self.hass, group.entry)
         await self.hass.async_stop()
         self.directory.cleanup()
+
+    async def test_committed_publication_fault_is_success_with_diagnostic_and_failclosed(self):
+        mapping = await self.setup_helpers()
+        from homeassistant.helpers.storage import Store
+        from custom_components.uninus_greenhouse_fan.persistence import VerifiedStore
+        from custom_components.uninus_greenhouse_fan.threshold_helpers import ThresholdInputNumber
+        store = Store(self.hass, 1, DOMAIN+'.'+self.entry.entry_id, atomic_writes=True)
+        before = self.group.registry.payload()
+        await store.async_save(before)
+        persistence = VerifiedStore(self.hass, store, before, self.group.stop)
+        self.group.registry._save = persistence.save
+        policy = {**self.group.registry.policy, 'humidity_on':88.1}
+        with patch.object(ThresholdInputNumber, 'async_write_ha_state', side_effect=RuntimeError('publication failed')):
+            result = await self.group.save_thresholds({key:policy[key] for key in mapping}, 0)
+        self.assertEqual(result['policy'], policy)
+        self.assertEqual(result['policy_revision'], 1)
+        self.assertEqual(result['save_status'], 'committed_publication_failed')
+        self.assertFalse(self.group.active)
+        self.assertEqual((await Store(self.hass, 1, store.key).async_load())['policy'], policy)
+        self.assertEqual(self.group.controller.policy.as_dict(), policy)
+
+    async def test_snapshot_metadata_failure_is_preflight_not_postcommit(self):
+        await self.setup_helpers()
+        policy = {**self.group.registry.policy, 'humidity_on':88.1}
+        with patch.object(self.group.threshold_helpers, 'mapping', side_effect=RuntimeError('metadata failed')):
+            with self.assertRaisesRegex(RuntimeError, 'metadata failed'):
+                await self.group.save_policy(policy, 0)
+        self.assertEqual(self.saved, [])
+        self.assertEqual(self.group.registry.policy_revision, 0)
+
+    async def test_committed_save_during_unload_returns_success_and_gated_diagnostic(self):
+        from homeassistant.helpers.storage import Store
+        from custom_components.uninus_greenhouse_fan.persistence import VerifiedStore
+        from custom_components.uninus_greenhouse_fan import async_unload_entry
+        mapping = await self.setup_helpers()
+        store = Store(self.hass, 1, DOMAIN+'.'+self.entry.entry_id, atomic_writes=True)
+        before = self.group.registry.payload()
+        await store.async_save(before)
+        persistence = VerifiedStore(self.hass, store, before, self.group.stop)
+        self.group.registry._save = persistence.save
+        verified, release, stopping = asyncio.Event(), asyncio.Event(), asyncio.Event()
+        original_verify, original_stop = persistence._verify, self.group.stop
+        async def paused_verify(payload):
+            await original_verify(payload)
+            verified.set()
+            await release.wait()
+        def stop():
+            original_stop()
+            stopping.set()
+        tasks = []
+        with patch.object(persistence, '_verify', side_effect=paused_verify), patch.object(self.group, 'stop', side_effect=stop):
+            try:
+                saving = asyncio.create_task(self.group.save_thresholds(
+                    {**{key:before['policy'][key] for key in mapping}, 'humidity_on':88.1}, 0))
+                tasks.append(saving)
+                await asyncio.wait_for(verified.wait(), 10)
+                unloading = asyncio.create_task(async_unload_entry(self.hass, self.entry))
+                tasks.append(unloading)
+                await asyncio.wait_for(stopping.wait(), 10)
+                release.set()
+                result = await saving
+                await unloading
+            finally:
+                release.set()
+                await asyncio.gather(*tasks, return_exceptions=True)
+        self.assertEqual(result['policy_revision'], 1)
+        self.assertEqual(result['policy']['humidity_on'], 88.1)
+        self.assertEqual(result['save_status'], 'committed_group_unloaded')
+        self.assertIn('已儲存', result['save_warning'])
+        self.assertFalse(self.group.active)
+        self.assertEqual(self.group.controller.policy.humidity_on, 88.1)
+        self.assertEqual((await Store(self.hass, 1, store.key).async_load())['policy'], result['policy'])
+        self.assertNotIn(self.entry.entry_id, self.hass.data[DOMAIN])
+        for identity in mapping.values():
+            state = self.hass.states.get(identity)
+            self.assertTrue(state is None or state.state == 'unavailable')
+
+    async def test_static_route_rejects_foreign_handler_and_native_handler_keywords(self):
+        from functools import partial
+        from aiohttp import web
+        from homeassistant.components.http import HomeAssistantHTTP
+        from custom_components.uninus_greenhouse_fan.frontend import async_ensure_card_resource, CARD_PATH
+        try:
+            from homeassistant.components.http.server import _serve_file, KEY_ALLOW_CONFIGURED_CORS
+        except ImportError:
+            from homeassistant.components.http import _serve_file, KEY_ALLOW_CONFIGURED_CORS
+        path = str(Path(__file__).resolve().parents[1] / 'custom_components' / DOMAIN / 'card.js')
+        async def foreign_handler(path, request):
+            return web.Response(text='foreign handler, not card bytes')
+        for handler in (partial(foreign_handler, path), partial(_serve_file, path, foreign=True)):
+            with self.subTest(handler=handler):
+                self.hass.http = HomeAssistantHTTP(self.hass,None,None,None,None,8123,[],'modern')
+                self.hass.http.app[KEY_ALLOW_CONFIGURED_CORS] = lambda route:None
+                self.hass.http.app.router.add_route('GET', CARD_PATH, handler)
+                self.hass.data[DOMAIN].pop('_path_registered', None)
+                with self.assertRaisesRegex(ValueError, 'another resource'):
+                    await async_ensure_card_resource(self.hass)
+                self.assertFalse(self.hass.data[DOMAIN].get('_path_registered', False))
+
+    async def test_user_humidity_934_to_881_all_four_durable_mirrors(self):
+        from homeassistant.helpers.storage import Store
+        from custom_components.uninus_greenhouse_fan.persistence import VerifiedStore
+        policy = {**self.group.registry.policy, 'temperature_on':35.2, 'temperature_off':25.1,
+                  'humidity_on':93.4, 'humidity_off':72.7, 'duration_seconds':120}
+        self.group.registry.policy = policy
+        from custom_components.uninus_greenhouse_fan.controller import Policy
+        self.group.controller.set_policy(Policy(**policy))
+        mapping = await self.setup_helpers()
+        store = Store(self.hass,1,DOMAIN+'.'+self.entry.entry_id,atomic_writes=True)
+        before = self.group.registry.payload()
+        await store.async_save(before)
+        persistence = VerifiedStore(self.hass,store,before,self.group.stop)
+        self.group.registry._save = persistence.save
+        result = await self.group.save_thresholds({**{key:policy[key] for key in mapping},'humidity_on':88.1},0)
+        self.assertEqual(result['policy_revision'],1)
+        self.assertEqual(result['policy']['humidity_on'],88.1)
+        self.assert_values(mapping,result['policy'])
+        self.assertEqual((await Store(self.hass,1,store.key).async_load())['policy'],result['policy'])
+        await self.call(mapping,'humidity_on',service='increment')
+        self.assertEqual(self.group.registry.policy['humidity_on'],88.2)
+        await self.call(mapping,'humidity_on',service='decrement')
+        self.assertEqual(self.group.registry.policy['humidity_on'],88.1)
+        self.assert_values(mapping,self.group.registry.policy)
+        self.assertEqual((await Store(self.hass,1,store.key).async_load())['policy_revision'],3)
+
+    async def test_static_route_created_before_failure_retry_and_concurrent_registration(self):
+        from homeassistant.components.http import HomeAssistantHTTP
+        try:
+            from homeassistant.components.http.server import KEY_ALLOW_CONFIGURED_CORS
+        except ImportError:
+            from homeassistant.components.http import KEY_ALLOW_CONFIGURED_CORS
+        from custom_components.uninus_greenhouse_fan.frontend import async_ensure_card_resource, CARD_PATH
+        self.hass.http = HomeAssistantHTTP(self.hass,None,None,None,None,8123,[],'modern')
+        def fail_after_route(route): raise RuntimeError('CORS failed after route creation')
+        self.hass.http.app[KEY_ALLOW_CONFIGURED_CORS] = fail_after_route
+        with self.assertRaisesRegex(RuntimeError,'CORS failed'):
+            await async_ensure_card_resource(self.hass)
+        self.hass.http.app[KEY_ALLOW_CONFIGURED_CORS] = lambda route:None
+        await asyncio.gather(*(async_ensure_card_resource(self.hass) for _ in range(3)))
+        routes = [route for route in self.hass.http.app.router.routes() if route.method=='GET' and route.resource.canonical==CARD_PATH]
+        self.assertEqual(len(routes),1)
+
+    async def test_helper_metadata_is_generated_once_before_commit(self):
+        await self.setup_helpers()
+        from unittest.mock import PropertyMock
+        from custom_components.uninus_greenhouse_fan.threshold_helpers import ThresholdInputNumber
+        with patch.object(ThresholdInputNumber, 'threshold_bounds', new_callable=PropertyMock) as bounds:
+            bounds.side_effect = [(0,50),(0,50),(0,100),(0,100),RuntimeError('late metadata lookup')]
+            result = await self.group.save_policy({**self.group.registry.policy,'humidity_on':88.1},0)
+            self.assertEqual(bounds.call_count,4)
+            self.assertNotIn('save_warning',result)
+            self.assertTrue(self.group.active)
 
     async def test_four_native_entities_services_and_entry_association(self):
         from custom_components.uninus_greenhouse_fan.threshold_helpers import async_setup_helpers
@@ -125,7 +286,9 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
             self.assert_values(mapping,policy)
             self.assertEqual(self.group.registry.policy,policy)
             self.assertEqual(self.group.controller._states,before)
-        with self.assertRaises(HomeAssistantError): await self.group.threshold_helpers.entities['temperature_off'].async_set_value(True)
+        entity = self.group.threshold_helpers.entities['temperature_off']
+        setter = entity.async_set_native_value if hasattr(input_number.InputNumber, 'native_value') else entity.async_set_value
+        with self.assertRaises(HomeAssistantError): await setter(True)
         self.assertEqual(self.saved,[])
 
     async def test_native_bool_coercion_limitation_is_exposed_not_claimed_strict(self):
@@ -343,6 +506,16 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
         from custom_components.uninus_greenhouse_fan.config_flow import GreenhouseFanConfigFlow
         from custom_components.uninus_greenhouse_fan import websocket as ws
         mapping=await self.setup_helpers()
+        from homeassistant.helpers.storage import Store
+        from custom_components.uninus_greenhouse_fan.persistence import VerifiedStore
+        store=Store(self.hass,1,DOMAIN+'.'+self.entry.entry_id,atomic_writes=True)
+        before=self.group.registry.payload()
+        await store.async_save(before)
+        persistence=VerifiedStore(self.hass,store,before,self.group.stop)
+        async def verified_save(payload):
+            await persistence.save(payload)
+            self.saved.append(payload)
+        self.group.registry._save=verified_save
         manager=self.hass.config_entries
         with patch('homeassistant.config_entries._async_get_flow_handler',new=AsyncMock(return_value=GreenhouseFanConfigFlow)):
             result=await manager.options.async_init(self.entry.entry_id)
@@ -352,13 +525,24 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(result['type'],'create_entry')
             self.assert_values(mapping,policy)
         replies=[]
-        connection=types.SimpleNamespace(user=types.SimpleNamespace(is_admin=True),send_result=lambda *a:replies.append(a),send_error=lambda *a:self.fail(str(a)))
+        reply_received=asyncio.Event()
+        def send_result(*args):
+            replies.append(args)
+            reply_received.set()
+        connection=types.SimpleNamespace(user=types.SimpleNamespace(is_admin=True),send_result=send_result,send_error=lambda *a:self.fail(str(a)))
         policy.update(temperature_on=37,humidity_off=71)
         ws.ws_save_thresholds(self.hass,connection,{'id':1,'type':DOMAIN+'/save_thresholds','entry_id':self.entry.entry_id,'expected_policy_revision':1,'thresholds':{key:policy[key] for key in mapping}})
-        await self.hass.async_block_till_done()
+        # async_response creates a background task: wait for the actual verified
+        # transaction reply, not an idle foreground-task snapshot.
+        await asyncio.wait_for(reply_received.wait(), 10)
         self.assert_values(mapping,policy)
         self.assertEqual(len(self.saved),2)
         self.assertEqual(replies[0][1]['threshold_entities'],mapping)
+        self.assertEqual(await Store(self.hass,1,store.key).async_load(),self.group.registry.payload())
+        await self.call(mapping,'humidity_on',97)
+        self.assert_values(mapping,self.group.registry.policy)
+        self.assertEqual(self.group.registry.policy_revision,3)
+        self.assertEqual(await Store(self.hass,1,store.key).async_load(),self.group.registry.payload())
 
     async def test_real_verified_store_native_write_and_failure_rollback(self):
         from homeassistant.helpers.storage import Store
@@ -417,10 +601,14 @@ class ThresholdHelpersTest(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.group.active)
         self.assertFalse(removal.done())
         release.set()
-        for task in (first,queued):
-            with self.assertRaises(HomeAssistantError): await task
+        # The in-flight write committed; deletion must drain it without falsely
+        # reporting a save failure. Queued writes still reject before mutation.
+        await first
+        with self.assertRaises(HomeAssistantError): await queued
         await removal;await self.hass.async_block_till_done()
         self.assertEqual(len(self.saved),1)
+        self.assertEqual(self.saved[0]['policy']['temperature_on'],35)
+        self.assertEqual(self.group.registry.policy['humidity_on'],93.4)
         for identity in mapping.values():
             self.assertIsNone(self.hass.states.get(identity))
             self.assertIsNone(er.async_get(self.hass).async_get(identity))

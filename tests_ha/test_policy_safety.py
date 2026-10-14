@@ -42,9 +42,12 @@ class PolicySafetyTest(unittest.IsolatedAsyncioTestCase):
         return calls
 
     async def test_native_schema_is_serializable_as_numeric_fields(self):
-        import voluptuous_serialize
-        from homeassistant.helpers.config_validation import custom_serializer
-        fields=voluptuous_serialize.convert(policy_schema(self.changed()), custom_serializer=custom_serializer)
+        from homeassistant.helpers.data_entry_flow import FlowManagerIndexView
+        from homeassistant.data_entry_flow import FlowResultType
+        # Exercise HA's actual HTTP serialization, not a third-party converter
+        # whose sentinel/schema implementation can differ across HA generations.
+        fields = FlowManagerIndexView(None)._prepare_result_json({
+            'type':FlowResultType.FORM, 'data_schema':policy_schema(self.changed())})['data_schema']
         self.assertEqual(len(fields),5)
         self.assertEqual([x['type'] for x in fields], ['float','float','float','float','integer'])
 
@@ -136,23 +139,29 @@ class PolicySafetyTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.group.controller._states,runtime)
         self.assertEqual(calls,[])
 
-    async def test_shutdown_during_write_no_runtime_publication_or_service(self):
+    async def test_shutdown_during_committed_write_returns_success_gated_no_service(self):
         from homeassistant.helpers.storage import Store
         from homeassistant.core import CoreState
         calls=await self.fixture(); store,adapter=await self.durable()
-        before=self.group.snapshot()['policy']; entered,release=asyncio.Event(),threading.Event()
+        expected=self.changed(); entered,release=asyncio.Event(),threading.Event()
         writer=Store._write_prepared_data
         def paused(target,*args):
             self.hass.loop.call_soon_threadsafe(entered.set)
             if not release.wait(5): raise OSError('test timeout')
             return writer(target,*args)
         with patch.object(Store,'_write_prepared_data',paused):
-            operation=asyncio.create_task(self.group.save_policy(self.changed(),0))
+            operation=asyncio.create_task(self.group.save_policy(expected,0))
             try:
                 await asyncio.wait_for(entered.wait(),5); self.hass.set_state(CoreState.stopping)
             finally: release.set()
-            with self.assertRaises(OSError): await operation
-        self.assertEqual(self.group.snapshot()['policy'],before)
+            result = await operation
+        self.assertEqual(result['save_status'], 'committed_group_stopping')
+        self.assertIn('已儲存', result['save_warning'])
+        self.assertFalse(self.group.active)
+        self.assertEqual(self.group.snapshot()['policy'],expected)
+        self.assertEqual(self.group.registry.policy, expected)
+        self.assertEqual((await store.async_load())['policy'], expected)
+        self.assertFalse(adapter.pending.exists())
         self.assertEqual(calls,[])
         self.hass.set_state(CoreState.not_running)
 
@@ -176,7 +185,10 @@ class PolicySafetyTest(unittest.IsolatedAsyncioTestCase):
                     setup=asyncio.create_task(async_setup_entry(self.hass,self.entry)); await asyncio.sleep(0)
                     self.assertFalse(unload.done()); self.assertFalse(setup.done())
                 finally: release.set()
-                with self.assertRaises(ValueError): await operation
+                result = await operation
+                self.assertEqual(result['policy'], expected)
+                self.assertEqual(result['save_status'], 'committed_group_unloaded')
+                self.assertIn('已儲存', result['save_warning'])
                 await unload; await setup
             self.group=self.hass.data[DOMAIN][self.entry.entry_id]
             self.assertEqual(self.group.snapshot()['policy'],expected)

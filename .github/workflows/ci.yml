@@ -4,6 +4,39 @@ on:
     branches: [main]
   pull_request:
 jobs:
+  native-ha:
+    # Matrix values are repository-controlled constants, never event text.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        runtime:
+          - {ha: '2025.12.0', python: '3.13'}
+          - {ha: '2026.10.1', python: '3.14'}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.runtime.python }}
+      - uses: astral-sh/setup-uv@v6
+      - name: Install actual pinned HA (Windows wheel overrides only)
+        shell: bash
+        env:
+          HA_VERSION: ${{ matrix.runtime.ha }}
+          RUNNER_PLATFORM: ${{ runner.os }}
+        run: |
+          uv venv --python python .venv-ha
+          EXTRA=()
+          if [ "$HA_VERSION" = '2025.12.0' ]; then EXTRA=('pycares==4.11.0'); fi
+          if [ "$RUNNER_PLATFORM" = Windows ]; then
+            PY=.venv-ha/Scripts/python.exe
+            uv pip install --python "$PY" "homeassistant==$HA_VERSION" "${EXTRA[@]}" --override tests_ha/windows-overrides.txt
+          else
+            PY=.venv-ha/bin/python
+            uv pip install --python "$PY" "homeassistant==$HA_VERSION" "${EXTRA[@]}"
+          fi
+          "$PY" -m unittest discover -s tests_ha -v
   offline-regressions:
     runs-on: ubuntu-latest
     steps:
@@ -16,13 +49,6 @@ jobs:
           node-version: '22'
       - name: Python controller, registry and HA-adapter fakes
         run: python -m unittest discover -s tests -p 'test_*.py' -v
-      - uses: astral-sh/setup-uv@v6
-      - name: Install pinned real HA in isolated environment
-        run: |
-          uv venv --python 3.13 .venv-ha
-          uv pip install --python .venv-ha/bin/python -r tests_ha/requirements.txt
-      - name: Native HA flows, owned input_number services/lifecycle and Store regressions
-        run: .venv-ha/bin/python -m unittest discover -s tests_ha -v
       - name: Lovelace contract tests
         run: node --test tests/test_card.mjs
       - name: Syntax and packaged-card equality

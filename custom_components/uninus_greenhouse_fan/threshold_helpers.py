@@ -33,7 +33,7 @@ class ThresholdInputNumber(InputNumber):
     editable = False
 
     def __init__(self, group, key):
-        self.group = group
+        self._fan_group = group
         self.key = key
         value = group.registry.policy[key]
         temperature = key.startswith('temperature')
@@ -45,10 +45,22 @@ class ThresholdInputNumber(InputNumber):
 
     @property
     def available(self):
-        return self.group.active
+        return self._fan_group.active
 
-    async def async_set_value(self, value):
-        await self._change(value=value)
+    # Define only the mutation API that this native generation dispatches.
+    # Defining the legacy override on NumberEntity itself emits a HA warning.
+    if hasattr(InputNumber, 'native_value'):
+        async def async_set_native_value(self, value):
+            await self._change(value=value)
+    else:
+        async def async_set_value(self, value):
+            await self._change(value=value)
+
+    @property
+    def threshold_bounds(self):
+        if hasattr(InputNumber, 'native_value'):
+            return self.native_min_value, self.native_max_value
+        return self._minimum, self._maximum
 
     async def async_increment(self):
         await self._change(delta=0.1)
@@ -58,25 +70,38 @@ class ThresholdInputNumber(InputNumber):
 
     async def _change(self, *, value=None, delta=None):
         try:
-            await self.group.save_helper_threshold(self.key, value=value, delta=delta)
+            await self._fan_group.save_helper_threshold(self.key, value=value, delta=delta)
         except (ValueError, TypeError, OSError) as error:
             raise HomeAssistantError(str(error)) from error
 
-    def publish(self, value):
+    def prepare(self, value):
+        """Generate all adapter metadata before the durable transaction."""
         temperature = self.key.startswith('temperature')
-        # Never tighten an extended bound during value edits: doing so would
-        # make a native decrement/increment impossible to undo.
-        minimum, maximum = (min(self._minimum, 0, value), max(self._maximum, 50, value)) if temperature else (0, 100)
-        changed = (self._current_value != value or self._minimum != minimum or self._maximum != maximum)
-        self._config['min'], self._config['max'] = minimum, maximum
-        self._current_value = value
+        old_minimum, old_maximum = self.threshold_bounds
+        if old_minimum > old_maximum:
+            raise ValueError('Invalid native helper bounds')
+        minimum, maximum = (min(old_minimum, 0, value), max(old_maximum, 50, value)) if temperature else (0, 100)
+        current = self.native_value if hasattr(InputNumber, 'native_value') else self._current_value
+        return minimum, maximum, (current != value or old_minimum != minimum or old_maximum != maximum)
+
+    def publish(self, value, prepared=None):
+        # Never tighten extended bounds; consume only preflight metadata when
+        # publishing a committed transaction.
+        minimum, maximum, changed = self.prepare(value) if prepared is None else prepared
+        if hasattr(InputNumber, 'native_value'):
+            self._attr_native_min_value = minimum
+            self._attr_native_max_value = maximum
+            self._attr_native_value = value
+        else:
+            self._config['min'], self._config['max'] = minimum, maximum
+            self._current_value = value
         if changed and self.hass is not None and self.platform.entities.get(self.entity_id) is self:
             self.async_write_ha_state()
 
 
 class ThresholdHelpers:
     def __init__(self, group):
-        self.group = group
+        self._fan_group = group
         self.entities = {key:ThresholdInputNumber(group, key) for key in KEYS}
         self.platform = EntityPlatform(hass=group.hass, logger=_LOGGER, domain='input_number',
             platform_name=DOMAIN, platform=None, scan_interval=timedelta(seconds=30), entity_namespace=None)
@@ -84,13 +109,16 @@ class ThresholdHelpers:
         self.platform.async_prepare()
 
     def mapping(self):
-        registry = er.async_get(self.group.hass)
-        return {key:identity for key in KEYS if (identity := registry.async_get_entity_id('input_number', DOMAIN, unique_id(self.group.entry.entry_id, key)))
-                and registry.async_get(identity).config_entry_id == self.group.entry.entry_id}
+        registry = er.async_get(self._fan_group.hass)
+        return {key:identity for key in KEYS if (identity := registry.async_get_entity_id('input_number', DOMAIN, unique_id(self._fan_group.entry.entry_id, key)))
+                and registry.async_get(identity).config_entry_id == self._fan_group.entry.entry_id}
 
-    def sync(self):
+    def prepare_sync(self, policy):
+        return {key:entity.prepare(policy[key]) for key, entity in self.entities.items()}
+
+    def sync(self, prepared=None):
         for key, entity in self.entities.items():
-            entity.publish(self.group.registry.policy[key])
+            entity.publish(self._fan_group.registry.policy[key], None if prepared is None else prepared[key])
 
     def unavailable(self):
         for entity in self.entities.values():

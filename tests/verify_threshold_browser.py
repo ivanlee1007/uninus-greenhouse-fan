@@ -75,7 +75,7 @@ with sync_playwright() as p:
     page.evaluate("()=>failSave('save_failed')");page.wait_for_function('!card.operation')
     assert float(slider.input_value()) == 29.2
     assert page.evaluate('()=>card.snapshot.policy.temperature_on') == 29.1
-    assert '草稿保留' in host.locator('.validation').inner_text()
+    assert '草稿保留' in host.locator('.validation').inner_text(), host.locator('.validation').inner_text()
     page.evaluate('async()=>{snap.policy.temperature_on=33;snap.policy_revision++;await card.load()}')
     assert float(slider.input_value()) == 29.2
     assert host.get_by_role('button', name='儲存門檻').is_disabled()

@@ -1,4 +1,4 @@
-# Native threshold entity boundary (0.5.0)
+# Native threshold entity boundary (0.5.1)
 
 ## Implementation choice
 
@@ -13,8 +13,8 @@ public `async_prepare`/`async_add_entities`/`async_destroy` lifecycle is used.
 No mutation of the native component's platform map is needed: HA's
 `EntityPlatform` constructor places every platform's `domain_entities` in a
 shared domain index, which is the same index the native `EntityComponent`
-holds for its registered services. This was checked against HA 2025.12 and
-exercised with actual native input_number setup and actual ServiceRegistry
+holds for its registered services. This was checked against HA 2025.12.0 and
+2026.10.1 and exercised with actual native input_number setup and actual ServiceRegistry
 calls, not fake state registrations.
 
 This low-level HA entity-platform boundary is intentionally version-tested.
@@ -101,6 +101,51 @@ Audited HA 2025.12 source paths (also inspected in the installed pinned runtime)
   association, entity allocation/rename/removal and public lifecycle methods.
 - `homeassistant/helpers/service.py`: user/permission lookup and dispatch.
 - `homeassistant/config_entries.py`: native removal, unload and cleanup.
+
+## 0.5.1: actual HA 2026.10.1 compatibility
+
+HA 2026.10.1 `InputNumber` subclasses `NumberEntity`; native `set_value`
+dispatches `async_set_native_value`. Its public native value/bounds and
+`_attr_native_*` attributes replace the old `_config`, `_current_value`,
+`_minimum` and `_maximum` representation. The 0.5.0 wrapper therefore both
+bypassed policy validation on native service writes and raised AttributeError
+when publishing a policy that the verified journal had already committed.
+This explains a saved policy revision alongside unchanged helper values and a
+subsequent stale-draft conflict: the conflict was not the first failure.
+
+The capability-based adapter defines only the appropriate setter for its
+native generation. Modern execution never reads/writes the legacy fields;
+legacy execution remains an explicit branch. Snapshot IDs and all four helper
+publication plans are computed before persistence. A later HA state-publication
+fault returns `save_status=committed_publication_failed` with the committed
+policy/revision and a clear warning, disables control, and logs the traceback;
+it is not reported as an uncommitted storage failure. Verified journal readback,
+rollback and quarantine gates remain unchanged. Lifecycle unload/delete still
+gates and drains in-flight services, forbidding post-unload publication.
+
+A real HA HTTP regression also confirmed that static route creation happens
+before CORS setup, so a CORS failure leaves GET registered while the old success
+flag stays unset. Retry now verifies exact route ownership, completes CORS,
+and avoids duplicate route registration; concurrent setup is serialized.
+
+`tests_ha/reproduce_050_modern.py` intentionally executes the unchanged 0.5.0
+source from baseline commit `411fce8` against actual modern InputNumber and
+HA Store/journal. Its RED evidence records persisted humidity **88.1**, policy
+revision **1**, unchanged helper **93.4**, then the exact `_minimum` AttributeError.
+The detached entities isolate that root cause from the separate modern HA
+warning about an entity's reserved `group` attribute; production now uses
+`_fan_group`. Native EntityPlatform/ServiceRegistry RED separately proves the
+old native setter bypass. No replacement/fake modern InputNumber is used.
+
+Verified locally: Windows 10, HA **2025.12.0 / Python 3.13.14** and HA
+**2026.10.1 / Python 3.14.5**, in separate environments. The installed modern
+input_number source is byte-identical to the official 2026.10.1 tag, SHA256
+`125533042f60e6e3a58d31f971b85d3ba4df42a7c47f5eccc4a9f26ed52927d2`.
+The real native Options HTTP schema serializer is exercised for each version;
+modern HA's probatio serializer accepts the existing flow schemas. CI now has
+both HA versions on Windows and Ubuntu, but hosted CI/Ubuntu has not been run
+locally or claimed as verified. Full counts, dependency/source hashes and
+worktree fingerprint are in `verification/0.5.1-thresholds.json`.
 
 No live Home Assistant, credentials, hardware, deployment, restart, commit,
 push, tag or release is used by these tests.
