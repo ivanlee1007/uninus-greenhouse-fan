@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from math import isfinite
 
 import voluptuous as vol
 from homeassistant.components import websocket_api
@@ -123,7 +124,45 @@ async def ws_set_control_mode(hass: HomeAssistant, connection: websocket_api.Act
         connection.send_result(msg["id"], result)
 
 
+def _finite_number(value):
+    if type(value) not in (int, float) or not isfinite(value):
+        raise vol.Invalid('Thresholds must be finite numbers, not booleans or strings')
+    return value
+
+
+def _policy_revision(value):
+    if type(value) is not int or value < 0:
+        raise vol.Invalid('Invalid policy revision')
+    return value
+
+
+@websocket_api.websocket_command({
+    'type': f'{DOMAIN}/save_thresholds',
+    vol.Required('entry_id'): str,
+    vol.Required('expected_policy_revision'): _policy_revision,
+    vol.Required('thresholds'): vol.Schema({vol.Required(key): _finite_number for key in ('temperature_on', 'temperature_off', 'humidity_on', 'humidity_off')}),
+})
+@websocket_api.require_admin
+@websocket_api.async_response
+async def ws_save_thresholds(hass, connection, msg):
+    """Admin-only, verified passive policy save for an actual loaded entry."""
+    group = _group(hass, connection, msg)
+    if group is None:
+        return
+    try:
+        result = await group.save_thresholds(msg['thresholds'], msg['expected_policy_revision'])
+    except Conflict:
+        connection.send_error(msg['id'], 'conflict', '門檻已由其他介面修改；請取消草稿並重新讀取後調整')
+    except (ValueError, TypeError) as error:
+        connection.send_error(msg['id'], 'invalid_policy', str(error))
+    except Exception:
+        _LOGGER.exception('Could not save thresholds for group %s', msg['entry_id'])
+        connection.send_error(msg['id'], 'save_failed', '門檻儲存失敗；草稿保留，控制仍使用原門檻。請檢查日誌或取消並重新讀取。')
+    else:
+        connection.send_result(msg['id'], result)
+
+
 def register_commands(hass: HomeAssistant) -> None:
     """Register one command set even when several group entries exist."""
-    for command in (ws_groups, ws_get, ws_bind, ws_manual, ws_set_control_mode):
+    for command in (ws_groups, ws_get, ws_bind, ws_manual, ws_set_control_mode, ws_save_thresholds):
         websocket_api.async_register_command(hass, command)

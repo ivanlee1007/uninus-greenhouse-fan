@@ -1,4 +1,4 @@
-# UNiNUS Greenhouse Fan 0.3.1
+# UNiNUS Greenhouse Fan 0.4.0
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -43,9 +43,21 @@ Measured collapsed four-device heights (CSS px), identical in light/dark themes;
 
 All 16 measured cases preserve 44×44px minimum control targets, zero horizontal overflow and unclipped reason/readout text. These are local real-Edge synthetic fixtures, not live dashboard measurements. Full measurements, computed colors and gate counts: `docs/verification/0.3.0-control-mode.json` (reruns also produce `tests/evidence/control-mode-layout.json`).
 
+## Shared threshold sliders (0.4.0, approved A)
+
+Expand the existing global strip to edit temperature and humidity in **two group boxes** (side-by-side wide, stacked narrow). Each group puts Start above Stop. The card editor and Dashboard Save still change only display configuration.
+
+- Sliders create a local draft only. **取消修改** discards it and reloads the saved policy; **儲存門檻** saves all four thresholds together. Only an administrator with a loaded selected group can save. Saved summary, warning colors and automatic control keep the saved policy until verified success. Pending saves block another Save, Cancel and other card writes.
+- Default display ranges are temperature **0–50 °C**, humidity **0–100 %**, step **0.1**. Valid historical temperature endpoints outside the demo range are shown unchanged with an explicitly expanded range, not silently clamped. Backend limits remain **−20–80 °C / 0–100 %**, with Stop ≤ Start; invalid/non-finite/boolean/string values are rejected. Invalid existing policy displays an error and disables editing rather than overwriting it.
+- The existing verified registry Store is the **only durable policy authority**, including native **Shared policy** Options and duration. Initial migration uses historical entry options over entry data over defaults, preserving identities, sources, holds and global mode. Once saved in the registry, stale entry options cannot restore an old policy. Native Options may edit duration; card Save preserves it.
+- A separate internal policy revision changes only when policy changes. Ordinary polls never rebase a dirty draft. A conflict or save failure retains the draft and old effective policy/timers; use Cancel/reload (or cancel/reopen native Options) to review current values. There are no revision inputs. Successful changed policies reset duration state while retaining manual holds and global mode; **the save handler never actuates equipment**. Normal periodic evaluation may act later, including the next tick for zero duration.
+- Expanded state, the exact focused slider node and a pointer drag survive live `hass` and snapshot updates. Old scope/detached operation results are ignored. Quarantine disables control; follow [verified-store recovery](docs/PERSISTENCE.md), not repeated Save.
+
+Local browser gate compares the frozen approved A fixture with production at 390/500/720/1080px in both themes and auto/fixed-two layouts. It checks group/slider and whole-card composition, overflow, real pointer/keyboard editing, Save/Cancel, validation, permissions, conflicts, failures and lifecycle races. Production deliberately replaces demo-only saved messages with verified-backend/pending/conflict guidance and dynamic native duration; demo host controls are not shipped.
+
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.3.1` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.4.0` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -55,9 +67,9 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.3.1'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.4.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
-## Display-only subtitle (0.3.1)
+## Display-only subtitle (introduced in 0.3.1)
 
 The global switch is pinned to the **right** of the existing threshold strip: visible label **自動**, then a conventional switch track. Its outer button is transparent with no border/capsule. Threshold pairs wrap on the left at narrow widths; the toggle stays in that row with a 44px hit target. Global Manual renders **no individual Resume button**. Only individual on/off holds under global Auto show Resume; pending switches keep the previous authoritative mode until success.
 
@@ -80,7 +92,7 @@ subtitle_unit: true             # optional, defaults true; state unit only, neve
 
 A missing entity/state, `unknown`, `unavailable`, null, non-finite scalar or missing selected attribute renders **—**. A missing attribute never falls back to the state. Numeric 0 and boolean false remain visible. Arrays/objects use safely escaped JSON bounded to 256 characters; failed serialization renders **—**. One entity or attribute only: no templates or text/entity composition. The picker emits config changes immediately on authoritative `value-changed`, including clears, and keeps active search mounted through state refreshes.
 
-Persisted verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
+Historical subtitle verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Current 0.4.0 results and fingerprints are in `docs/verification/0.4.0-thresholds.json`. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
 
 ## Migration and old YAML
 
@@ -117,6 +129,7 @@ git diff --check
 python tests/verify_card_browser.py
 python tests/verify_control_browser.py
 python tests/verify_subtitle_browser.py
+python tests/verify_threshold_browser.py
 ```
 
 Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.

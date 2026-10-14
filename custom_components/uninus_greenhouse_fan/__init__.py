@@ -28,7 +28,13 @@ class FanGroup:
         self.hass = hass
         self.entry = entry
         self.registry = registry
-        self.controller = Controller(_entry_policy(entry))
+        # Legacy options are migration input only, never a second effective store.
+        if registry.policy is None:
+            if registry.policy_present:
+                raise ValueError('Stored policy is null; refusing legacy fallback')
+            registry.policy = _entry_policy(entry).as_dict()
+            registry.migrated = True
+        self.controller = Controller(Policy(**registry.policy))
         for fan, mode in registry.manual_modes.items():
             self.controller.set_mode(fan, mode)
         if registry.control_mode == 'manual':
@@ -108,6 +114,30 @@ class FanGroup:
                 self._manual_targets.clear()
             return self.snapshot()
 
+    async def save_policy(self, values, expected_revision):
+        """Durable all-field transaction; no evaluation or output service here."""
+        if not isinstance(values, dict) or set(values) != set(POLICY_KEYS):
+            raise ValueError('A complete policy with no extra fields is required')
+        policy = Policy(**values)
+        async with self._lock:
+            self._require_active()
+            await self.registry.set_policy(policy.as_dict(), expected_revision)
+            self._require_active()
+            self.controller.set_policy(policy)
+            return self.snapshot()
+
+    async def save_thresholds(self, thresholds, expected_revision):
+        """Four thresholds only; retain native duration under the same lock."""
+        if not isinstance(thresholds, dict) or set(thresholds) != set(POLICY_KEYS) - {'duration_seconds'}:
+            raise ValueError('All four thresholds with no extra fields are required')
+        async with self._lock:
+            self._require_active()
+            policy = Policy(**{**self.registry.policy, **thresholds})
+            await self.registry.set_policy(policy.as_dict(), expected_revision)
+            self._require_active()
+            self.controller.set_policy(policy)
+            return self.snapshot()
+
     async def evaluate_all(self) -> None:
         """The same persistent-duration gate runs on every periodic evaluation."""
         async with self._lock:
@@ -152,7 +182,10 @@ class FanGroup:
 
     async def _options_updated(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         async with self._lock:
-            self.controller.set_policy(_entry_policy(entry))
+            # Options forms already wrote the authoritative registry transaction.
+            # Stale entry options must never resurrect a prior threshold policy.
+            if self.active:
+                self.controller.set_policy(Policy(**self.registry.policy))
 
     def _require_exclusive(self, fan):
         runtime = self.hass.data.get(DOMAIN, {})
@@ -254,10 +287,10 @@ async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     loaded = await store.async_load()
     persistence.previous = loaded
     registry = Registry(entry.entry_id, loaded, persistence.save)
+    group = FanGroup(hass, entry, registry)
     if registry.migrated:
         await persistence.save(registry.payload())
         registry.migrated = False
-    group = FanGroup(hass, entry, registry)
     data[entry.entry_id] = group
     await async_setup(hass, {})
     group.start()

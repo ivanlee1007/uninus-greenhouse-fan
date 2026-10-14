@@ -196,8 +196,11 @@ class OptionsTest(unittest.IsolatedAsyncioTestCase):
         created = await setup.async_step_user({'name':'North', **DEFAULT_POLICY})
         self.assertEqual(created['title'], 'North')
         policy = await self.flow().async_step_policy({**DEFAULT_POLICY,'temperature_on':35})
-        self.assertEqual(policy['data']['temperature_on'],35)
-        self.assertEqual(self.saved, [])
+        self.assertNotIn('temperature_on', policy['data'])
+        self.assertEqual(self.group.snapshot()['policy']['temperature_on'],35)
+        self.assertEqual(self.saved[-1]['policy']['temperature_on'],35)
+        reopened = await self.flow().async_step_policy()
+        self.assertEqual(reopened['data_schema']({})['temperature_on'],35)
 
     async def test_pair_cleared_through_native_schema_and_bad_entity_field_errors(self):
         flow = self.flow(); await flow.async_step_add_device(); await flow.async_step_device(self.record)

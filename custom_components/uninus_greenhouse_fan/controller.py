@@ -15,9 +15,9 @@ class Policy:
         values = (self.temperature_on, self.temperature_off, self.humidity_on, self.humidity_off)
         if any(isinstance(value, bool) or not isinstance(value, (float, int)) or not isfinite(value) for value in values):
             raise ValueError('Thresholds must be finite numbers')
-        if not (-20 <= self.temperature_off < self.temperature_on <= 80):
-            raise ValueError('Off thresholds must be lower than on thresholds')
-        if not (0 <= self.humidity_off < self.humidity_on <= 100):
+        if not (-20 <= self.temperature_off <= self.temperature_on <= 80):
+            raise ValueError('Temperature must be in [-20, 80]; off must not exceed on')
+        if not (0 <= self.humidity_off <= self.humidity_on <= 100):
             raise ValueError('Humidity must be in [0, 100]')
         if isinstance(self.duration_seconds, bool) or not isinstance(self.duration_seconds, int) or not 0 <= self.duration_seconds <= 86400:
             raise ValueError('Duration must be an integer from 0 through 86400')

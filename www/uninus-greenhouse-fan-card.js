@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.3.1 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.4.0 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -34,6 +34,9 @@
   };
   const number = (entity,kind) => {const value=reading(entity,kind);return Number.isFinite(value)?value.toFixed(1):'—'};
   const errorText = error => String(error?.message || error || 'Request failed');
+  const thresholdKeys=['temperature_on','temperature_off','humidity_on','humidity_off'];
+  const thresholdValues=p=>Object.fromEntries(thresholdKeys.map(k=>[k,p?.[k]]));
+  const thresholdValidation=p=>thresholdKeys.some(k=>typeof p?.[k]!=='number'||!Number.isFinite(p[k]))?'門檻必須是有效數字；請取消並重新讀取。':p.temperature_off>p.temperature_on||p.humidity_off>p.humidity_on?'停止下限不可高於啟動上限，請調整後再儲存。':p.temperature_off < -20 || p.temperature_on>80 || p.humidity_off<0 || p.humidity_on>100?'門檻超出有效範圍（溫度 −20～80 °C、濕度 0～100 %），請檢查。':'';
   const styles = `<style>
     :host{display:block;min-width:0;--bg:#10171b;--surface:#1c282e;--inner:#142027;--text:#eef3f2;--muted:#b8c8c5;--border:#35444b;--accent:#f4cf5a;--good:#8cdbb3;--danger:#ffada5;color:var(--text);font:13px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
     :host([data-theme="light"]){--bg:#edf2ef;--surface:#fff;--inner:#e6eee9;--text:#21312e;--muted:#4f605b;--border:#c6d3cb;--accent:#155f55;--good:#16633d;--danger:#a83220}
@@ -46,11 +49,12 @@
     .live-status{margin-left:auto;text-align:right;min-width:0;display:grid;justify-items:end;gap:9px}.live-line{width:100%;text-align:right}.live-line span,.live-line strong{display:block}.live-line span{color:var(--muted);font-size:11px}.live-line strong{font-size:21px}.live-line.threshold-high strong,.live-line.threshold-high strong small{color:var(--danger)}.live-line.threshold-high strong{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}.device-details{min-height:48px;margin:6px 0 6px}.mode-row{font-size:11px}.reason{color:var(--muted);font-size:11px;margin-top:4px;min-height:2em}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:auto}.controls button.resume{grid-column:1/-1}.controls button.selected{border-color:var(--accent);color:var(--accent)}.card-note{margin-top:10px;font-size:11px;color:var(--muted)}.status{color:var(--danger);margin:8px 0}
     .editor{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:16px}.editor h2{font-size:17px;margin-bottom:12px}.editor p{color:var(--muted);margin:8px 0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{min-width:0}.field.wide{grid-column:1/-1}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.field ha-entity-picker{display:block;min-width:0}.slot{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:12px 0}.slot-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.slot-actions{display:flex;gap:5px}.slot-actions button{min-width:40px}.feedback{color:var(--good)!important}.feedback.failure{color:var(--danger)!important}.notice{border:1px solid var(--border);border-radius:8px;padding:9px;margin:12px 0}.editor-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
     @container(max-width:630px){.layout-2 .fan-item{padding:8px}.layout-2 .device-title{flex-wrap:wrap;gap:3px}.layout-2 .device-title h3{width:100%;font-size:13px}.layout-2 .device-hero{flex-direction:column;gap:4px}.layout-2 .live-status{margin:0;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;justify-items:stretch}.layout-2 .live-line{text-align:center}.layout-2 .live-line strong{font-size:16px;white-space:nowrap}.layout-2 .live-line span{font-size:10px}.layout-2 .controls{gap:4px}.layout-2 .controls button{padding:6px 2px;font-size:11px;min-width:0;min-height:44px}.layout-2 .reason{overflow-wrap:anywhere}.layout-2 .mode-row{overflow-wrap:anywhere}}@container(max-width:370px){.card{padding:13px}.header h2{font-size:17px}.global summary{gap:6px}.limit-pair{flex-basis:100%;justify-content:space-between}.limit-pair b{font-size:13px}.device-hero{gap:6px}.scene{width:80px;height:80px}.fan-machine{transform:scale(.82)}.live-line strong{font-size:17px}}@media(max-width:450px){.fields{grid-template-columns:1fr}.global-body{grid-template-columns:1fr}}
+    .threshold-demo{grid-column:1/-1;min-width:0}.threshold-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.threshold-group{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--inner)}.threshold-group h3{font-size:13px;margin:0 0 8px}.slider-row{display:grid;grid-template-columns:64px minmax(0,1fr) 70px;align-items:center;gap:8px;margin:7px 0}.slider-row label{font-size:12px;color:var(--muted)}.slider-row input[type=range]{padding:0;min-height:30px;accent-color:var(--accent);width:100%;border:0;background:transparent;cursor:pointer}.slider-row output{font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}.help{font-size:11px;color:var(--muted);margin-top:6px}.threshold-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}.threshold-actions .notice-text{font-size:11px;color:var(--muted);margin-right:auto}.threshold-actions button{min-height:44px;font-size:12px;padding:6px 12px}.threshold-actions button.save{background:var(--accent);color:var(--bg);border-color:var(--accent)}.validation{font-size:12px;color:var(--danger);margin:5px 0}@container(max-width:520px){.threshold-grid{grid-template-columns:1fr}.slider-row{grid-template-columns:64px minmax(0,1fr) 65px}}
   </style>`;
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.3.1'}
+    static get buildVersion(){return '0.4.0'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
@@ -104,9 +108,16 @@
   class FanCard extends GroupClient {
     constructor() {
       super();this.attachShadow({mode:'open'});this.snapshot=null;this.expanded=false;this.busy='';this.error='';this.request=0;
-      this.shadowRoot.addEventListener('toggle',e=>{if(e.target.matches?.('details.global'))this.expanded=e.target.open},true);
+      this.shadowRoot.addEventListener('toggle',e=>{if(e.target===this.shadowRoot.querySelector('details.global'))this.expanded=e.target.open},true);
+      this.thresholdDraft=null;this.policyError='';this.policyNotice='';
+      this.shadowRoot.addEventListener('input',e=>{
+        const key=e.target.dataset?.threshold;
+        if(key && e.target===this.shadowRoot.querySelector(`[data-threshold="${key}"]`))this.editThreshold(key,Number(e.target.value));
+      });
 
       this.shadowRoot.addEventListener('click',e=>{
+        if(e.target.closest?.('[data-save]')){this.saveThresholds();return}
+        if(e.target.closest?.('[data-cancel]')){this.cancelThresholds();return}
         const toggle=e.target.closest?.('button[data-control-mode]');
         if(toggle){e.preventDefault();e.stopPropagation();this.setControlMode(toggle.dataset.controlMode);return}
         const button=e.target.closest?.('button[data-mode]');if(button)this.manual(button.dataset.fan,button.dataset.mode);
@@ -119,6 +130,61 @@
       if(!this.groups.length)return `<p class="status" role="alert">尚無控制群組；請在 ${settings} 新增整合，再編輯卡片。</p>`;
       if(!this.resolvedId)return `<p class="status" role="alert">${this.groups.some(row=>row.loaded)?'有多個控制群組；請編輯卡片選擇控制群組':'控制群組尚未載入；請檢查整合設定'}。${settings}</p>`;
       return '';
+    }
+    invalidate(){super.invalidate();this.thresholdDraft=null;this.policyError='';this.policyNotice=''}
+    canEditThresholds(){return !this.detached && !this.operation && !!this.resolvedId && this.snapshot?.entry_id===this.resolvedId && this.hass?.user?.is_admin===true && Number.isInteger(this.snapshot?.policy_revision)}
+    thresholdStale(){return !!this.thresholdDraft && (this.thresholdDraft.id!==this.resolvedId || this.thresholdDraft.revision!==this.snapshot?.policy_revision)}
+    editThreshold(key,value){
+      if(!thresholdKeys.includes(key)||!this.canEditThresholds())return;
+      if(!this.thresholdDraft)this.thresholdDraft={id:this.resolvedId,revision:this.snapshot.policy_revision,values:thresholdValues(this.snapshot.policy)};
+      this.thresholdDraft.values[key]=value;this.policyError='';this.policyNotice='';this.updateThresholdControls();
+    }
+    cancelThresholds(){
+      if(this.operation)return;
+      this.thresholdDraft=null;this.policyError='';this.policyNotice='已取消修改；重新讀取已儲存門檻。';this.render();this.load();
+    }
+    async saveThresholds(){
+      if(!this.thresholdDraft || !this.canEditThresholds() || this.loading)return;
+      const validation=thresholdValidation(this.thresholdDraft.values);
+      if(validation || this.thresholdStale()){this.policyError=validation || '門檻已由其他介面修改；請取消草稿並重新讀取後調整。';this.updateThresholdControls();return}
+      const draft=this.thresholdDraft,operation={epoch:this.epoch,id:this.resolvedId,kind:'policy'};
+      this.operation=operation;this.request++;this.loading=false;this.policyError='';this.render();
+      const current=()=>!this.detached && this.operation===operation && this.epoch===operation.epoch && this.resolvedId===operation.id && this.thresholdDraft===draft;
+      try{
+        const result=await this.hass.callWS({type:PREFIX+'save_thresholds',entry_id:operation.id,expected_policy_revision:draft.revision,thresholds:{...draft.values}});
+        if(!current())return;
+        const savedPolicy=this.snapshot.policy,changed=thresholdKeys.some(k=>savedPolicy[k]!==draft.values[k]);
+        if(result?.entry_id!==operation.id || result.policy_revision!==draft.revision+(changed?1:0) || result.policy?.duration_seconds!==savedPolicy.duration_seconds || thresholdValidation(result.policy) || thresholdKeys.some(k=>result.policy[k]!==draft.values[k]))throw Error('儲存結果未能核對；請取消並重新讀取門檻。');
+        this.snapshot=result;this.thresholdDraft=null;this.policyNotice='已儲存門檻；重新開始條件計時，不會立即開關風扇。';
+      }catch(error){if(current())this.policyError=error?.code==='conflict'?'門檻已由其他介面修改；請取消草稿並重新讀取後調整。':'門檻儲存失敗；草稿保留。'+errorText(error)}
+      finally{if(!this.detached && this.operation===operation && this.epoch===operation.epoch){this.operation=null;this.render()}}
+    }
+    thresholdMarkup(){
+      const p=this.thresholdDraft?.values||this.snapshot?.policy||{},valid=!thresholdValidation(p);
+      const metrics=[['temperature','溫度','°C',0,50],['humidity','濕度','%',0,100]];
+      return `<section class="threshold-demo variant-a"><div class="threshold-grid">${metrics.map(([k,name,unit,min,max])=>{
+        // Extend the demo range for valid native policies; never clamp them.
+        if(k==='temperature' && valid){min=Math.min(min,p.temperature_off);max=Math.max(max,p.temperature_on)}
+        return `<section class="threshold-group"><h3>${name}控制門檻</h3>${['on','off'].map(side=>{const key=k+'_'+side;return `<div class="slider-row"><label for="${key}">${side==='on'?'啟動上限':'停止下限'}</label><input id="${key}" aria-label="${name}${side==='on'?'啟動上限':'停止下限'}" type="range" min="${min}" max="${max}" step="0.1" value="${Number.isFinite(p[key])?p[key]:min}" data-threshold="${key}" ${this.canEditThresholds() && valid?'':'disabled'}><output for="${key}">${Number.isFinite(p[key])?p[key].toFixed(1):'—'} ${unit}</output></div>`}).join('')}<p class="help">${name}：超過上限可啟動；降至下限才允許停止。<span data-range-help="${k}"></span></p></section>`}).join('')}</div><p class="validation" hidden></p><div class="threshold-actions"><span class="notice-text" role="status"></span><button data-cancel disabled>取消修改</button><button class="save" data-save disabled>儲存門檻</button></div><p class="help" data-duration-help>啟動：溫度或濕度超過上限，持續 ${escape(this.snapshot?.policy?.duration_seconds ?? '—')} 秒。停止：兩者皆降至下限，持續相同秒數。</p></section>`;
+    }
+    updateThresholdControls(){
+      const root=this.shadowRoot,p=this.thresholdDraft?.values||this.snapshot?.policy||{};
+      const validation=!this.snapshot?.policy?'':this.thresholdStale()?'門檻已由其他介面修改；請取消草稿並重新讀取後調整。':this.policyError || thresholdValidation(p);
+      for(const key of thresholdKeys){const input=root.querySelector(`[data-threshold="${key}"]`);if(!input)continue;
+        const kind=key.startsWith('temperature')?'temperature':'humidity',nativeValid=!thresholdValidation(this.snapshot?.policy);
+        input.min=kind==='temperature' && nativeValid?Math.min(0,this.snapshot.policy.temperature_off):0;
+        input.max=kind==='temperature' && nativeValid?Math.max(50,this.snapshot.policy.temperature_on):100;
+        if(Number.isFinite(p[key]) && Number(input.value)!==p[key])input.value=p[key];
+        input.disabled=!this.canEditThresholds() || !nativeValid;
+        input.nextElementSibling.textContent=Number.isFinite(p[key])?p[key].toFixed(1)+(kind==='temperature'?' °C':' %'):'—';
+      }
+      const range=root.querySelector('[data-range-help="temperature"]');
+      if(range){const saved=this.snapshot?.policy,valid=!thresholdValidation(saved);range.textContent=valid && (saved.temperature_off<0 || saved.temperature_on>50)?` 既有門檻範圍：${String(Math.min(0,saved.temperature_off)).replace('-','−')}～${Math.max(50,saved.temperature_on)} °C。`:''}
+      const message=root.querySelector('.validation');if(message){message.hidden=!validation;message.textContent=validation;if(validation)message.setAttribute('role','alert');else message.removeAttribute('role')}
+      const save=root.querySelector('[data-save]');if(save)save.disabled=!this.thresholdDraft || !this.canEditThresholds() || this.loading || !!validation;
+      const cancel=root.querySelector('[data-cancel]');if(cancel)cancel.disabled=!this.thresholdDraft || !!this.operation;
+      const notice=root.querySelector('.notice-text');if(notice)notice.textContent=this.operation?.kind==='policy'?'正在儲存；控制仍使用原門檻。':this.thresholdDraft?'尚未儲存 · 自動控制仍使用已儲存門檻':this.policyNotice || (this.hass?.user?.is_admin===true?'調整後一次儲存；不會立即開關風扇。':'只有管理員可以儲存門檻。');
+      const help=root.querySelector('[data-duration-help]');if(help)help.textContent=`啟動：溫度或濕度超過上限，持續 ${this.snapshot?.policy?.duration_seconds ?? '—'} 秒。停止：兩者皆降至下限，持續相同秒數。`;
     }
     static getConfigElement() {return document.createElement('uninus-greenhouse-fan-card-editor')}
     static getStubConfig() {return {type:'custom:uninus-greenhouse-fan-card',entry_id:'',name:'Greenhouse fans',items:[],layout:'auto',theme:'dark'}}
@@ -173,10 +239,22 @@
     render() {
       if(!this.config)return;
       this.setAttribute?.('data-theme',this.config.theme);
+      const retained=this.shadowRoot.querySelector('.threshold-demo');
+      // Keep threshold DOM continuously mounted across snapshot renders.
+      const retain=retained && retained.dataset.scope===this.resolvedId && !!this.snapshot;
       const p=this.snapshot?.policy || {}, items=this.config.items;
       const tOn=p.temperature_on ?? '—',tOff=p.temperature_off ?? '—',hOn=p.humidity_on ?? '—',hOff=p.humidity_off ?? '—';
       const count=items.filter(x=>state(this.hass,this.output(x))?.state==='on').length;
-      this.shadowRoot.innerHTML=`${styles}<section class="card layout-${this.config.layout}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header>${this.groupMarkup()}<div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body"><p>條件持續 ${escape(p.duration_seconds ?? '—')} 秒 · 計時中 ${Object.values(this.snapshot?.runtime||{}).filter(r=>r.pending).length} 台</p><p><strong>開：</strong>溫度 &gt; ${escape(tOn)} °C 或濕度 &gt; ${escape(hOn)} %<br><strong>關：</strong>溫度 ≤ ${escape(tOff)} °C 且濕度 ≤ ${escape(hOff)} %</p></div></details><div class="fans">${items.map(x=>this.renderFan(x)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
+      const html=`${styles}<section class="card layout-${this.config.layout}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header><div class="group-status">${this.groupMarkup()}</div><div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body">${this.thresholdMarkup()}</div></details><div class="fans">${items.map(x=>this.renderFan(x)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
+      if(retain){
+        // Patch live regions only: focused/dragged range nodes never detach.
+        const next=document.createElement('template');next.innerHTML=html;
+        for(const selector of ['.header','.group-status','.global summary','.fans','.card-note']){
+          this.shadowRoot.querySelector(selector).replaceWith(next.content.querySelector(selector));
+        }
+      }else this.shadowRoot.innerHTML=html;
+      const controls=this.shadowRoot.querySelector('.threshold-demo');if(controls)controls.dataset.scope=this.resolvedId;
+      this.updateThresholdControls();
     }
     getCardSize(){return Math.max(3,(this.config?.items?.length||0)*3)}
   }

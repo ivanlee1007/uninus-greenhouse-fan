@@ -41,3 +41,4 @@ jobs:
           python tests/verify_card_browser.py
           python tests/verify_control_browser.py
           python tests/verify_subtitle_browser.py
+          python tests/verify_threshold_browser.py

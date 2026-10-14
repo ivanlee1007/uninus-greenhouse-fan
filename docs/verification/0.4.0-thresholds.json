@@ -1,0 +1,428 @@
+{
+  "version": "0.4.0",
+  "head": "1a0889d21c6bef49043e8918675c4d612dc4b493",
+  "gates": {
+    "offline_python": {
+      "exit_code": 0,
+      "tests": 50,
+      "log": "tests/evidence/0.4.0-offline_python.log"
+    },
+    "native_ha": {
+      "exit_code": 0,
+      "tests": 58,
+      "log": "tests/evidence/0.4.0-native_ha.log"
+    },
+    "node": {
+      "exit_code": 0,
+      "tests": 38,
+      "log": "tests/evidence/0.4.0-node.log"
+    },
+    "browser_card": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-browser_card.log"
+    },
+    "browser_control": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-browser_control.log"
+    },
+    "browser_subtitle": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-browser_subtitle.log"
+    },
+    "browser_threshold": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-browser_threshold.log"
+    },
+    "compile": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-compile.log"
+    },
+    "node_source_syntax": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-node_source_syntax.log"
+    },
+    "node_bundle_syntax": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-node_bundle_syntax.log"
+    },
+    "diff_check": {
+      "exit_code": 0,
+      "tests": null,
+      "log": "tests/evidence/0.4.0-diff_check.log"
+    }
+  },
+  "json_files_validated": 5,
+  "shipped_copies_equal": true,
+  "js_sha256": "f7de10a07733ffbe5ff0fb900121aac27611198bf92528049b6b19329836df86",
+  "js_bytes": 46314,
+  "approved_a_fixture_sha256": "406bc74ec7f0a73daaf9af0c56a977786909a70dc85fb17a7e6808d3bc9fecba",
+  "working_tree_content_fingerprint": "5494e1192fbcf186e0718fc4fa32573801184035df440cab80cdc03043da0a8f",
+  "fingerprint_definition": "SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report",
+  "file_hashes": {
+    ".github/workflows/ci.yml": "5b61ea630770db112dfee319b86a45bda1bd7c33b5876f11745c4f6c4b00d7c8",
+    ".gitignore": "c09f987fb19ebe62fa9b59a6cfb22fe5ae8f48ecf446566d706fe1061937f17a",
+    "README.md": "cc916418a40715770c6ad7bd7d0dd63e9daf121fbfbbbd8b0e590f5f996da313",
+    "custom_components/uninus_greenhouse_fan/__init__.py": "829218b320cb588447c8041f37cf2d6e86677ad144a99efeb5cf00814bfac775",
+    "custom_components/uninus_greenhouse_fan/card.js": "f7de10a07733ffbe5ff0fb900121aac27611198bf92528049b6b19329836df86",
+    "custom_components/uninus_greenhouse_fan/config_flow.py": "540e9b8bcb49d7bdaf30204411b9c7d58b4d4f5e95cb4ad91fead139a06a7505",
+    "custom_components/uninus_greenhouse_fan/const.py": "6fa48ced2bb0bfbf2b7ce0f5728c32388ed97fce39fa6e74c4114d7164eae480",
+    "custom_components/uninus_greenhouse_fan/controller.py": "0930dfe8fe1f179cce262bd70f246d4a273317314f76263e7c464dee89ae4ff2",
+    "custom_components/uninus_greenhouse_fan/frontend.py": "2dbaa2956a6fa7e7e3b656937e7b98c00c9caa6de7b555e316cf19d6d27910be",
+    "custom_components/uninus_greenhouse_fan/manifest.json": "0b6af3215614e2f271be1a64ff706741afeb489b775441dbc3e660f2a8fdc039",
+    "custom_components/uninus_greenhouse_fan/persistence.py": "2ac26163a905dcd1af086daa4036a9416ce243296bb680c8d33481ef751cbe4a",
+    "custom_components/uninus_greenhouse_fan/registry.py": "a3f976a1691eaf01ad6a82db32682a2dff6bbbc5dc1e5ebcb8e4a16d243cc13b",
+    "custom_components/uninus_greenhouse_fan/sensors.py": "20b9d2041a94f3d9de756c97ec78a2ab5c062bd6ad3dd2f566a6b707d7111459",
+    "custom_components/uninus_greenhouse_fan/strings.json": "4af56bec998a9770c313ee4e672990455d944c91135aa63b1a02cd9668bb13ff",
+    "custom_components/uninus_greenhouse_fan/translations/en.json": "4af56bec998a9770c313ee4e672990455d944c91135aa63b1a02cd9668bb13ff",
+    "custom_components/uninus_greenhouse_fan/translations/zh-Hant.json": "442db9d9d085b2a81cedda42dac137db33584525e204f07619972902b3e60217",
+    "custom_components/uninus_greenhouse_fan/websocket.py": "a98b0781b4dae28c85d01510040d0eff78ee2a46136daac2b009b4d190e468a7",
+    "docs/CONTRACT.md": "20a86ad740a9afa3399e6b76e2fc4c8375e593057103a0db842e153e86692e92",
+    "docs/PERSISTENCE.md": "957969639fee400d1f965d1e8cfc9fc42ca2522a2364ff23fbeb4f081bd33c70",
+    "docs/assets/actual-card-1080.png": "ab64afd47fa7d1d3fb54133354068d8f2ba273caa6f15d632c7610c5b096293d",
+    "docs/assets/actual-card-720.png": "b92987c0082e35cf5eaa4e05f492683ffcb55b1b06874facbe878077950b7d9c",
+    "docs/design/v8/SPEC-v8.md": "7e36b1162b1f75cca6af34618f0b64c3f9ff9546c6dbca51df008ba1b7c0c3d3",
+    "docs/design/v8/card.html": "9787395301c1321eb9d33a2bf4e9ca78abb1d97c61ccc992632ba4a599eb3dd5",
+    "docs/design/v8/index.html": "c10398eb1568d5632a27777b5231bf121b53fb4e9b362a6db66ec0f35784ef7c",
+    "docs/verification/0.3.0-control-mode.json": "d7e908afbed79d2ad7b8d7411ca4e16cd8220b5d9ea4214250359cff52b3b583",
+    "docs/verification/0.3.1-frontend.json": "7905567b76b1a0db3e04e08c7f3ac3a7ff61a9ad3066ab262a76015cb6f43274",
+    "hacs.json": "1c8884087eb3e366d1be008962c44621c01086b620e46f96ed30c6544aac0709",
+    "tests/fixtures/approved-threshold-a.html": "406bc74ec7f0a73daaf9af0c56a977786909a70dc85fb17a7e6808d3bc9fecba",
+    "tests/run_release_gate.py": "0ddd0ccb71b87435a7420256e7de3add3af4fccd39811a9d0070cb70a3319a92",
+    "tests/test_card.mjs": "3a80a3b7497cd11db2205491e1107a24fc1262e85d6b4d12d988546c479487b2",
+    "tests/test_controller.py": "afb0f60153142c22a2efab2b42eed1f829d75a51050077773ba08ce9fed021d8",
+    "tests/test_devices.py": "5fdf0f73ba7f9852f0144d3c3f1cf74e03582bfe7dcca7234932b125888a2a83",
+    "tests/test_hacs.py": "3c51bb1922c9289102c437fb34ec9e124938c33f45f3c2a84479675fae8c461d",
+    "tests/test_integration.py": "539b25a0f2be476a010b1708ebe41ba69b6ff5509eabb4c57475fa2c6a3f6110",
+    "tests/test_registry.py": "26f672ee651fbcede4eec3e37234107cae9740b21f0875155e0e1235b53efca8",
+    "tests/verify_card_browser.py": "2ebf00a3e9d304a6b471df33b0f881594d21ffb86fa580d5f23c3d456e00855b",
+    "tests/verify_control_browser.py": "62f3c8587726ebcc1057e5e4521a2ac8f117ca9f923126b483ebffd3234eecf4",
+    "tests/verify_subtitle_browser.py": "4d73f33ac7f0dd68c17e52dd15daa6bef7f3196167a6ea076cf1ef8d7834d1fa",
+    "tests/verify_threshold_browser.py": "f5603c03fb31c328714a2ece5c5d6c748022ce1a481cbca0c7c272a0ec232ceb",
+    "tests_ha/requirements.txt": "34808a063ac0df41cd131730b5ee5a8666708ee32d22cb0328b0f7504e067b53",
+    "tests_ha/test_control_mode.py": "d8b0497d678f92b56cd41add0c0d9eb064555166ef9c8899935377f50d8609bf",
+    "tests_ha/test_options.py": "ff85971156e3874a3d2ece5d54aff5dde79a8e8b19cad86567f86717d22f1f51",
+    "tests_ha/test_policy.py": "87e64f44fee7b57a890a5267137f56c5b9c3e6151a3058c6ff5217ad5df97d42",
+    "tests_ha/test_policy_safety.py": "09d8046a11e8afebe89ae9750aa496746eeafb11639460b81ab40a9f592f450f",
+    "tests_ha/windows-overrides.txt": "06e18ace6e855beb69530681ec692af38c4ba325649fc06701e3c3e8cc72e423",
+    "www/uninus-greenhouse-fan-card.js": "f7de10a07733ffbe5ff0fb900121aac27611198bf92528049b6b19329836df86"
+  },
+  "scope": "Repository-only isolated actual HA/Store/ServiceRegistry and browser fixtures; no live HA, commit, push, release, deployment, restart or hardware actuation",
+  "threshold_browser": {
+    "geometry": [
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 390,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 500,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 720,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 1080,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 390,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 500,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 720,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 1080,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 390,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 500,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 720,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 1080,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 390,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 500,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 720,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 1080,
+        "max_geometry_delta": 0,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "interaction": "pointer drag, keyboard, Save/Cancel, validation, pending, failure, stale/conflict, detach passed",
+    "errors": []
+  },
+  "passed": true
+}

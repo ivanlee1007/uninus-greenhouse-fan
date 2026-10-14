@@ -26,6 +26,42 @@ const states = {
 };
 const snapshot = (revision=2) => ({entry_id:'group-1',revision,devices:['fan.a','fan.b','switch.relay'].map(fan=>({device_id:fan,name:fan,fan_entity:fan})),policy:{temperature_on:30,temperature_off:25,humidity_on:80,humidity_off:60,duration_seconds:120},bindings:{'fan.a':{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{'fan.a':{mode:'auto',pending:null,reason:'Ready'}}});
 const config = {type:'custom:uninus-greenhouse-fan-card',entry_id:'group-1',name:'House',items:[{fan_entity:'fan.a',name:'Front'}],layout:'auto',theme:'dark'};
+test('threshold response rejects changed duration and stale revision without clearing draft', async () => {
+  for(const override of [{policy_revision:0},{policy:{...snapshot().policy,temperature_on:35,duration_seconds:1}}]){
+    const {Card}=setup(),el=new Card();el.setConfig(config);
+    const view={...snapshot(),policy_revision:0};
+    el.hass={...groupHass(groups,msg=>msg.type.endsWith('/save_thresholds')?{...view,policy_revision:1,policy:{...view.policy,temperature_on:35},...override}:view),user:{is_admin:true}};await flush();
+    el.editThreshold('temperature_on',35);await el.saveThresholds();
+    assert.ok(el.thresholdDraft);assert.equal(el.snapshot.policy.temperature_on,30);assert.match(el.policyError,/核對/);
+  }
+});
+test('threshold draft survives unrelated revision but never rebases policy on poll', async () => {
+  const {Card}=setup(),el=new Card();el.setConfig(config);let view={...snapshot(),policy_revision:0};let writes=0;
+  el.hass={...groupHass(groups,msg=>{if(msg.type.endsWith('/save_thresholds'))writes++;return view}),user:{is_admin:true}};await flush();
+  el.editThreshold('temperature_on',35);view={...view,revision:99};await el.load();
+  assert.equal(el.thresholdDraft.revision,0);assert.equal(el.thresholdStale(),false);
+  view={...view,policy_revision:1,policy:{...view.policy,temperature_on:36}};await el.load();
+  assert.equal(el.thresholdDraft.revision,0);assert.equal(el.thresholdDraft.values.temperature_on,35);assert.equal(el.thresholdStale(),true);
+  await el.saveThresholds();assert.equal(writes,0);
+});
+test('threshold draft only, explicit atomic save, cancel, pending serialization', async () => {
+  const {Card}=setup(), el=new Card();el.setConfig(config);let finish;
+  let view={...snapshot(),policy_revision:0};const calls=[];
+  el.hass={...groupHass(groups,msg=>{calls.push(msg);return msg.type.endsWith('/save_thresholds')?new Promise(r=>finish=r):view}),user:{is_admin:true}};await flush();
+  assert.equal(typeof el.editThreshold,'function');
+  el.editThreshold('temperature_on',35);
+  assert.equal(el.snapshot.policy.temperature_on,30);
+  assert.equal(calls.filter(x=>x.type.endsWith('/save_thresholds')).length,0);
+  el.cancelThresholds();assert.equal(el.thresholdDraft,null);await flush();
+  el.editThreshold('temperature_on',35);
+  const pending=el.saveThresholds();await el.saveThresholds();await el.manual('fan.a','off');await el.setControlMode('manual');
+  const writes=calls.filter(x=>x.type.endsWith('/save_thresholds'));
+  assert.equal(writes.length,1);
+  assert.deepEqual(JSON.parse(JSON.stringify(writes[0])),{type:'uninus_greenhouse_fan/save_thresholds',entry_id:'group-1',expected_policy_revision:0,thresholds:{temperature_on:35,temperature_off:25,humidity_on:80,humidity_off:60}});
+  assert.equal(el.snapshot.policy.temperature_on,30);
+  finish({...view,policy_revision:1,policy:{...view.policy,temperature_on:35}});await pending;
+  assert.equal(el.thresholdDraft,null);assert.equal(el.snapshot.policy.temperature_on,35);
+});
 test('global mutation errors and late completions are scoped and cannot bypass pending gate', async () => {
   const {Card}=setup(),el=new Card();el.setConfig(config);let reject;
   const calls=[];el.hass=groupHass(groups,msg=>{calls.push(msg);return msg.type.endsWith('/set_control_mode')?new Promise((resolve,r)=>reject=r):snapshot()});await flush();
@@ -107,8 +143,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.3.1 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.3.1');assert.equal(Editor.buildVersion,'0.3.1');
+test('loaded custom elements expose readable 0.4.0 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.4.0');assert.equal(Editor.buildVersion,'0.4.0');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

@@ -30,11 +30,16 @@ class Registry:
         self.bindings = deepcopy(bindings)
         self.manual_modes = deepcopy(modes)
         self.control_mode = control_mode
+        self.policy_present = 'policy' in data
+        self.policy = deepcopy(data.get('policy'))
+        self.policy_revision = data.get('policy_revision', 0)
+        if type(self.policy_revision) is not int or self.policy_revision < 0:
+            raise ValueError('Invalid stored policy revision')
         self._save = save
         self._lock = asyncio.Lock()
         self._closed = False
         legacy_inventory = 'devices' not in data
-        self.migrated = legacy_inventory or 'control_mode' not in data
+        self.migrated = legacy_inventory or 'control_mode' not in data or 'policy' not in data or 'policy_revision' not in data
         self.devices = deepcopy(data.get('devices', {}))
         if legacy_inventory:
             for fan in sorted(set(bindings) | set(modes)):
@@ -88,15 +93,30 @@ class Registry:
         return next((deepcopy(row) for row in self.devices.values() if row['fan_entity'] == fan), None)
 
     def payload(self):
-        return {'revision': self.revision, 'devices': deepcopy(self.devices), 'bindings': deepcopy(self.bindings), 'manual_modes': deepcopy(self.manual_modes), 'control_mode': self.control_mode}
+        return {'revision': self.revision, 'devices': deepcopy(self.devices), 'bindings': deepcopy(self.bindings), 'manual_modes': deepcopy(self.manual_modes), 'control_mode': self.control_mode, 'policy': deepcopy(self.policy), 'policy_revision': self.policy_revision}
 
-    async def _commit(self, devices, modes, control_mode=None):
+    async def _commit(self, devices, modes, control_mode=None, policy=None):
         control_mode = self.control_mode if control_mode is None else control_mode
+        candidate = self.policy if policy is None else policy
+        policy_revision = self.policy_revision + (candidate != self.policy)
         bindings, revision = self._bindings(devices), self.revision + 1
-        await self._save({'revision': revision, 'devices': deepcopy(devices), 'bindings': bindings, 'manual_modes': deepcopy(modes), 'control_mode': control_mode})
+        await self._save({'revision': revision, 'devices': deepcopy(devices), 'bindings': bindings, 'manual_modes': deepcopy(modes), 'control_mode': control_mode, 'policy': deepcopy(candidate), 'policy_revision': policy_revision})
         self.devices, self.bindings, self.manual_modes, self.revision = devices, bindings, modes, revision
         self.control_mode = control_mode
+        self.policy, self.policy_revision = deepcopy(candidate), policy_revision
         self.migrated = False
+
+    async def set_policy(self, policy, expected_revision):
+        """Commit a fully validated policy inside the same verified journal."""
+        from .controller import Policy
+        policy = Policy(**policy).as_dict()
+        if type(expected_revision) is not int or expected_revision < 0:
+            raise ValueError('Invalid policy revision')
+        async with self._lock:
+            self._require_open()
+            if expected_revision != self.policy_revision:
+                raise Conflict('Thresholds changed; cancel your draft and reload the group')
+            await self._commit(deepcopy(self.devices), deepcopy(self.manual_modes), policy=policy)
 
     async def set_control_mode(self, mode):
         """One durable transaction; global auto explicitly clears every hold."""
@@ -147,7 +167,7 @@ class Registry:
                     for x in (temperature, humidity)))
 
     def snapshot(self):
-        return {'entry_id': self.entry_id, 'revision': self.revision, 'bindings': deepcopy(self.bindings), 'control_mode': self.control_mode,
+        return {'entry_id': self.entry_id, 'revision': self.revision, 'policy_revision': self.policy_revision, 'bindings': deepcopy(self.bindings), 'control_mode': self.control_mode,
                 'devices': [{key: row[key] for key in ('device_id', 'name', 'fan_entity', 'temperature_entity', 'humidity_entity')} for row in self.devices.values()]}
 
     async def bind(self, expected_revision, fan, temperature, humidity, existing):

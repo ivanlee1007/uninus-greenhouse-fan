@@ -52,7 +52,7 @@ class Decorator:
     def async_response(f):return f
     ActiveConnection=type('ActiveConnection',(),{})
 module('homeassistant.components.websocket_api',websocket_command=Decorator.websocket_command,async_register_command=Decorator.async_register_command,require_admin=Decorator.require_admin,async_response=Decorator.async_response,ActiveConnection=Decorator.ActiveConnection)
-module('voluptuous',Required=lambda x:x,All=lambda *args:args,Range=lambda **kwargs:kwargs,In=lambda x:x)
+module('voluptuous',Required=lambda x:x,Schema=lambda x:x,All=lambda *args:args,Range=lambda **kwargs:kwargs,In=lambda x:x)
 package='custom_components.uninus_greenhouse_fan'
 module('custom_components').__path__=[str(ROOT.parent)]
 spec=importlib.util.spec_from_file_location(package,ROOT/'__init__.py',submodule_search_locations=[str(ROOT)])
@@ -378,9 +378,9 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls, [])
 
     async def test_unbound_never_actuates_and_registers_contract(self):
-        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual','uninus_greenhouse_fan/set_control_mode'])
+        self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual','uninus_greenhouse_fan/set_control_mode','uninus_greenhouse_fan/save_thresholds'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.3.1')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.4.0')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])
@@ -438,8 +438,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.hass.states['sensor.t'].attributes['unit_of_measurement']='°C'
         await self.group.bind(0,'fan.a','sensor.t','sensor.h')
         with patch.object(app,'monotonic',return_value=0):await self.group.evaluate_all()
-        self.entry.options={'duration_seconds':60}
-        await self.entry.update_listeners[0](self.hass,self.entry)
+        await self.group.save_policy({**self.group.snapshot()['policy'], 'duration_seconds':60}, 0)
         with patch.object(app,'monotonic',return_value=120):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])
         with patch.object(app,'monotonic',return_value=180):await self.group.evaluate_all()

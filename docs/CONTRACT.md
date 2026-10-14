@@ -1,8 +1,10 @@
-# Greenhouse fan 0.3.1 implementation contract
+# Greenhouse fan 0.4.0 implementation contract
 
 The v8 design reference stays global-policy-above-grid with responsive columns. No demo width control is shipped.
 
-- One integration config entry owns one group: shared policy in entry data/options, complete device inventory/bindings/manual holds in HA Store.
+- One integration config entry owns one group: shared policy/duration/policy_revision, complete device inventory/bindings/manual holds/global mode in one verified HA Store registry. Entry data/options supply migration input only; stale options cannot resurrect a policy. Native Shared policy reads/saves that authority before OptionsFlowManager updates unrelated entry metadata.
+- Approved A threshold editor exists only inside the expanded global strip: two wide group boxes, stacked narrow, Start above Stop. Range input creates a draft only; Cancel discards/reloads, admin Save sends all four finite thresholds plus the original policy revision, without duration. Polls cannot silently rebase drafts; unrelated registry changes do not change policy revision. Pending writes serialize other card actions; failures/conflicts preserve drafts/effective policy/timers. Changed successful saves reset duration state but preserve holds/global mode and call no services. Focused/dragged slider DOM survives live polls; stale scope/detach results are ignored.
+- Default slider range is temperature 0–50, humidity 0–100, step 0.1; valid legacy temperature endpoints expand the range visibly, never clamp. Backend accepts temperature −20–80, humidity 0–100, Stop ≤ Start; strict boolean/string/nonfinite rejection applies to native and WS inputs. CI requires native policy/storage tests and real browser approved-A geometry/interaction gates.
 - Native Options menu: named list, Add, Edit, Remove with confirmation, shared policy. Device form saves name/output/optional complete source pair atomically. Cancel is read-only. Stable opaque IDs are independent of name/output.
 - Native output EntitySelector permits fan/switch; source selectors permit sensor temperature/humidity classes. Sources must use °C/%; incomplete pairs fail. Clearing both produces a manual-only device.
 - Device records migrate from legacy binding/hold union with deterministic stable IDs, no actuation and idempotent reload. Existing YAML literal fan_entity resolves only configured ownership; legacy unstored display-only outputs need explicit Add.

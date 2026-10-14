@@ -14,13 +14,35 @@ from .const import DOMAIN, DEFAULT_POLICY, POLICY_KEYS
 _LOGGER = logging.getLogger(__name__)
 
 
+class _NativeNumber(vol.Coerce):
+    """Serializable native numeric field without Coerce's bool/string bypass."""
+    def __init__(self):
+        super().__init__(float)
+
+    def __call__(self, value):
+        from math import isfinite
+        if type(value) not in (int, float) or not isfinite(value):
+            raise vol.Invalid('A finite number is required')
+        return value
+
+
+class _NativeDuration(vol.Coerce):
+    def __init__(self):
+        super().__init__(int)
+
+    def __call__(self, value):
+        if type(value) is not int or not 0 <= value <= 86400:
+            raise vol.Invalid('An integer from 0 through 86400 is required')
+        return value
+
+
 def policy_schema(current):
     return vol.Schema({
-        vol.Required('temperature_on', default=current['temperature_on']): vol.Coerce(float),
-        vol.Required('temperature_off', default=current['temperature_off']): vol.Coerce(float),
-        vol.Required('humidity_on', default=current['humidity_on']): vol.Coerce(float),
-        vol.Required('humidity_off', default=current['humidity_off']): vol.Coerce(float),
-        vol.Required('duration_seconds', default=current['duration_seconds']): vol.All(vol.Coerce(int), vol.Range(min=0, max=86400)),
+        vol.Required('temperature_on', default=current['temperature_on']): _NativeNumber(),
+        vol.Required('temperature_off', default=current['temperature_off']): _NativeNumber(),
+        vol.Required('humidity_on', default=current['humidity_on']): _NativeNumber(),
+        vol.Required('humidity_off', default=current['humidity_off']): _NativeNumber(),
+        vol.Required('duration_seconds', default=current['duration_seconds']): _NativeDuration(),
     })
 
 
@@ -62,17 +84,31 @@ class GreenhouseFanOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_menu(step_id='init', menu_options=['devices', 'add_device', 'edit_device', 'remove_device', 'policy'])
 
     async def async_step_policy(self, user_input=None) -> FlowResult:
+        group = self._group()
+        if group is None:
+            return self.async_abort(reason='group_unloaded')
         errors = {}
-        current = {key: self._entry.options.get(key, self._entry.data.get(key, DEFAULT_POLICY[key])) for key in POLICY_KEYS}
+        if not hasattr(self, '_policy_draft'):
+            self._policy_draft = dict(group.registry.policy)
+            self._policy_revision = group.registry.policy_revision
         if user_input is not None:
-            current.update(user_input)
+            self._policy_draft = dict(user_input)
             try:
-                Policy(**current)
+                await group.save_policy(user_input, self._policy_revision)
+            except Conflict:
+                errors['base'] = 'conflict'
             except (TypeError, ValueError):
                 errors['base'] = 'invalid_policy'
+            except StorageQuarantined:
+                errors['base'] = 'storage_quarantined'
+            except Exception:
+                _LOGGER.exception('Could not save shared policy for group %s', self._entry.entry_id)
+                errors['base'] = 'save_failed'
             else:
-                return self.async_create_entry(title='', data={**self._entry.options, **current})
-        return self.async_show_form(step_id='policy', data_schema=policy_schema(current), errors=errors)
+                # Entry options are unrelated metadata, not a duplicate policy store.
+                return self.async_create_entry(title='', data={key: value for key, value in self._entry.options.items() if key not in POLICY_KEYS})
+        current = {**group.registry.policy, **self._policy_draft}
+        return self.async_show_form(step_id='policy', data_schema=policy_schema(current), errors=errors, last_step=True)
 
     async def async_step_devices(self, user_input=None):
         if user_input is not None:
