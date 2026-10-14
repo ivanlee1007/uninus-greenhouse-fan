@@ -16,6 +16,13 @@ jobs:
           node-version: '22'
       - name: Python controller, registry and HA-adapter fakes
         run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - uses: astral-sh/setup-uv@v6
+      - name: Install pinned real HA in isolated environment
+        run: |
+          uv venv --python 3.13 .venv-ha
+          uv pip install --python .venv-ha/bin/python -r tests_ha/requirements.txt
+      - name: Native HA config/options flows and Store regressions (no fake modules)
+        run: .venv-ha/bin/python -m unittest discover -s tests_ha -v
       - name: Lovelace contract tests
         run: node --test tests/test_card.mjs
       - name: Syntax and packaged-card equality

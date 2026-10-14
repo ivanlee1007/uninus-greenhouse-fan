@@ -1,38 +1,37 @@
-# UNiNUS Greenhouse Fan
+# UNiNUS Greenhouse Fan 0.2.0
 
-Home Assistant custom integration and Lovelace card based on the approved **C 方案 · 逐欄自動排列 v8** design. **Development build only: not released, installed, or verified on a live Home Assistant instance.**
+Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
-![720px card, four fans in a 2×2 grid](docs/assets/actual-card-720.png)
+## Device settings: one save in the integration
 
-## Implemented in this branch
+1. **Settings → Devices & services → Add integration → UNiNUS Greenhouse Fan**. Name the control group and choose shared temperature/humidity on/off limits and required duration.
+2. Open the group's **Configure / Options** menu. **Configured devices** shows names/outputs; **Add device**, **Edit device**, **Remove device** manage an unlimited-length inventory. **Shared policy** retains the group-wide threshold form.
+3. **Add device** opens a native form: name, existing output entity (`fan.*` or `switch.*`), optional temperature sensor (temperature device class, °C) and humidity sensor (humidity class, %).
+4. Leave **both sensors blank** for manual-only control; automatic control requires a **complete pair**. Clearing both on an existing device clears its binding. A partial pair produces a field error with your input retained.
+5. Submit once (**Save/Submit**, depending on HA frontend language) to save the complete record. **Cancel/close writes nothing**. Validation/storage errors preserve inputs. A concurrent settings change requires cancel/reopen/review; there are no revision or internal-ID fields.
+6. **Edit device** selects a named configured record then opens the same form. **Remove device** requires explicit unchecked-by-default confirmation, stops automation and clears its hold, but **does not switch the physical output**. Arrange its physical state first if necessary.
 
-- A collapsible global policy strip stays **above** independent fan cards at every width; collapsed content shows the shared temperature and humidity on/off limits.
-- Grid auto-fit depends on the card's own width. Four items yield 1, 2, 3+1, then 4 in a row. Fixed one/two columns remain available. [1080px three-column screenshot](docs/assets/actual-card-1080.png).
-- Each card item has a fan output Entity (`fan.*` or relay `switch.*`), display name, temperature Entity, and humidity Entity. The last two are edited in the **card editor**, not in Integration Options.
-- A versioned authoritative binding registry is persisted per integration config entry. The editor's explicit **套用感測來源** action commits a binding through admin-only WebSocket; a Lovelace Save alone only changes display configuration. Conflicts retain the draft. Multiple cards read the same mapping.
-- Integration Options contains only shared temperature/humidity on/off thresholds and duration. A periodic controller enforces the same duration on every evaluation, handles unavailable readings fail-closed, and holds manual fan/switch mode across restarts until explicitly resumed.
-- The integration bundles and serves the card JavaScript. In Lovelace storage-resource mode it creates/updates its own module resource; YAML-resource mode requires manually declaring the logged module URL.
+### Ownership and control safety
 
-See the [implementation contract](docs/CONTRACT.md) and [approved offline v8 design](docs/design/v8/SPEC-v8.md). The reference demo is **not** production code.
+- Each output can belong to one configured device/group. Duplicate outputs are rejected within and across loaded groups. If **another group is unloaded**, its ownership cannot be proven: device assignment/editing and manual/automatic control are conservatively blocked until **all groups load**. Removal and shared policy edits remain possible.
+- Sensor-source changes reset automatic duration timers and preserve manual holds. A name-only edit leaves timers intact.
+- Output replacement retains the opaque device identity, but **does not transfer the old hold/timers**. It does not actuate the old output. The new output starts automatic evaluation with fresh timers if complete healthy sources exist; a zero-duration policy permits action on its next evaluation. Review this before saving.
+- Manual on/off requires an owned available output, **not sensors**. A durable hold is saved before dispatch, survives restart and remains held if the service fails. **Resume automatic** clears the hold without immediate actuation; manual-only devices remain automatically inactive. The backend can clear an offline target's hold, while visible card buttons require availability.
+- Auto remains fail-closed for missing/unavailable/mislabeled/non-finite readings. On: temperature above limit **OR** humidity above limit. Off: temperature at/below off limit **AND** humidity at/below off limit. Conditions must last the required duration.
 
-## Manual-only outputs (0.1.2)
+## Dashboard: display-only editor
 
-- A displayed, available `fan.*` or `switch.*` supports **手動開啟 / 手動關閉** without temperature/humidity bindings. Only automatic control requires a complete, valid binding and usable readings. Wrong-domain, malformed, missing or unavailable outputs cannot be manually actuated.
-- Manual holds are saved before dispatch, survive integration reloads/restarts even for unbound outputs, and remain held when a device command fails. Save failure does not commit a new mode or dispatch a command.
-- **恢復自動** clears the hold without immediately actuating anything. For an unbound output the card explains **僅手動控制 / 自動未啟用**; automatic evaluation stays inactive until both sensor sources are explicitly bound and healthy. A stored hold can be cleared by the backend even if its device is currently missing/unavailable; visible card controls continue to require an available displayed target.
-- Admin-only write permissions, loaded/current control group checks, serialized backend writes and fresh group-scoped card snapshots remain required.
-- Sensor binding lookup now uses Home Assistant StateMachine’s `get()` API rather than dictionary membership. Unexpected binding errors log their traceback and show localized log/reconciliation guidance instead of assuming a filesystem persistence failure. **套用感測來源** remains an explicit backend write; dashboard **Save** remains display-only.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.2.0` manually as a module.
+2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown; no IDs need copying. Saved missing/unloaded references are never silently switched.
+3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary HA entity picker is offered. If none exists, follow the integration settings link and Add device, then refresh.
+4. Set display names/order, card title, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
+5. New choices store opaque `device_id`, independent of name/output, so they follow output edits. A deleted stable reference cannot fall back to a different output. Refresh and scope/disconnect races cannot replace new inventory or show stale manual results.
 
-## Choosing a control group (0.1.1)
+The policy strip stays above the grid. Automatic layout uses the card's own width: 390/720/1080/1380px show 1/2/3/4 columns. Animation/readings follow real entity state, not optimistic toggles.
 
-1. Add the **UNiNUS Greenhouse Fan** integration in **Settings → Devices & services**, and give each greenhouse control group a recognizable name. Shared thresholds and duration remain in Integration Options.
-2. Add the **UNiNUS Greenhouse Fan** dashboard card. The card and visual editor discover control groups automatically—there is no internal ID to copy or type.
-3. If exactly one group is loaded, it connects automatically. Otherwise choose the named **控制群組** dropdown. Unloaded groups are shown but cannot be selected. With no groups, use the **Settings → Devices & services** link to add the integration. A failed discovery request is reported as an error, not as “no groups”; retry with **重新讀取綁定** in the editor (the runtime card polls).
-4. The editor emits `config-changed` with the selected internal reference; **Save** stores it in the dashboard. Choose fan display items and apply sensor bindings as before. Switching groups retains unsaved sensor drafts separately for each group during that editor session; it never applies those drafts to the other group. Refreshing does not advance a dirty draft’s original revision: use **捨棄草稿並核對來源**, inspect the current backend sources, and edit again to reconcile a conflict before reapplying.
+## Migration and old YAML
 
-Existing card YAML with `entry_id` continues to work. A saved reference that is missing or unloaded is **never silently switched** to another group; controls stay disabled with a recovery message. Select another loaded group explicitly or repair/reload the original integration. YAML without `entry_id` can resolve the unique loaded group at runtime; with several loaded groups it waits for a named selection. For a durable multi-group choice, select and Save through the visual editor. An already-dispatched backend write cannot be undone by switching or closing the card, but its late result cannot overwrite the new group’s UI/drafts.
-
-Minimal YAML (no manual integration ID):
+Existing bindings **and persisted manual-only holds** migrate idempotently into configured devices, preserving exact mappings and holds. Migration persists without actuation; legacy IDs are deterministic and retained on reload. Old literal `fan_entity` YAML continues to select the matching configured output:
 
 ```yaml
 type: custom:uninus-greenhouse-fan-card
@@ -44,25 +43,41 @@ layout: auto
 theme: dark
 ```
 
-## Local verification (no HA connection)
+**Old display-only outputs with neither a binding nor a persisted hold were never in integration storage. They cannot be inferred from dashboard YAML: Add them through Integration Options before manual control is enabled.** Old selections can still display state with a setup warning, but unregistered targets cannot be controlled.
+
+Stable `device_id` selections follow output replacements; legacy `fan_entity` stays attached to its literal output and needs reselection after replacement. The deprecated admin-only `bind` WebSocket remains for old clients but can only modify an already configured output; it cannot create arbitrary bindings. The new editor never calls it.
+
+## Persistence and local verification
+
+HA Store owns complete device records, bindings and holds per group, with atomic writes and a pre-write durable transaction journal. Readback retries reconcile transient failures; other failures must verify rollback before returning a retry-safe error. Unreconciled storage disables the group and quarantines it across restart. See [persistence semantics and explicit recovery](docs/PERSISTENCE.md); **never simply delete a quarantine journal or retry Save**. Device snapshots project only allowlisted scalar fields.
+
+Existing workflow commands:
 
 ```sh
 python -m unittest discover -s tests -p 'test_*.py' -v
 node --test tests/test_card.mjs
-# Requires Playwright and Chromium/Edge:
+python -m compileall -q custom_components/uninus_greenhouse_fan
+node --check www/uninus-greenhouse-fan-card.js
+node --check custom_components/uninus_greenhouse_fan/card.js
+python -c "from pathlib import Path; assert Path('www/uninus-greenhouse-fan-card.js').read_bytes() == Path('custom_components/uninus_greenhouse_fan/card.js').read_bytes()"
+git diff --check
 python tests/verify_card_browser.py
 ```
 
-The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, manual command and unbound relay on/off/resume clicks, named group discovery/selection, missing/unloaded/error states, and lifecycle races. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
+Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.
 
-## HACS download
+Real HA tests **must run separately** from the old adapter suite, which injects fake HA modules:
 
-Add `https://github.com/ivanlee1007/uninus-greenhouse-fan` as a HACS custom repository with category **Integration**. The root `hacs.json` describes a standard `custom_components/uninus_greenhouse_fan` source installation; no release ZIP is required.
+```sh
+uv venv --python 3.13 .venv-ha
+uv pip install --python .venv-ha/bin/python -r tests_ha/requirements.txt
+.venv-ha/bin/python -m unittest discover -s tests_ha -v
+```
 
-If HACS still selects the old `bbaee59` commit and reports **The version … can not be used with HACS**, refresh the repository information in HACS, reopen Download, and select the latest default-branch commit. That initial commit lacked `hacs.json`; refreshing cannot make the old commit installable. The integration manifest now also includes HACS-required `codeowners` and `issue_tracker` metadata.
+Windows: use `.venv-ha/Scripts/python.exe` and add `--override tests_ha/windows-overrides.txt` to install. HA pins `lru-dict==1.3.0`, requiring unavailable MSVC build tools on this host; local verification uses the real 1.4.1 wheel. **HA remains pinned 2025.12.0**. `pycares==4.11.0` avoids its incompatible transitive 5.x API. Linux CI needs no Windows override. Native tests use actual ConfigFlow/OptionsFlow/EntitySelector/StateMachine/Store—not fake `sys.modules`—and exercise both flow handlers and HA's OptionsFlowManager save/reopen/abort path (only integration discovery/bootstrap is mocked).
 
-This fixes download packaging only; live HA compatibility and physical fan operation still require the safety checks below.
+## HACS and deployment gate
 
-## Installation and safety gate
+HACS custom repository: `https://github.com/ivanlee1007/uninus-greenhouse-fan`, category **Integration**, normal `custom_components/uninus_greenhouse_fan` layout.
 
-Do **not** use this initial branch with production fan outputs. Before any installation: review the integration for the target HA version and permissions, verify config flow and Lovelace Add Card GUI in an isolated HA instance, then obtain explicit authorization for a staged live test. Once installed, bound outputs may be automatically controlled under the selected policy; leaving all fans unbound prevents automatic actuation but does not prevent explicitly requested manual commands. No release tag, HACS installation, production configuration change, restart, dashboard write, or fan actuation has been performed in this repository work.
+Before production use, review target HA version/permissions and verify native Options and Lovelace dialogs in an isolated authenticated HA instance. Devices with complete healthy sources may automatically act under the policy **even without a dashboard card**. Live HA .223 is unauthenticated here; its installed compatibility, native frontend button wording and hardware behavior are **not live-verified**. No commit/push/tag/release/deploy/restart/fan operation is authorized by this repository task.

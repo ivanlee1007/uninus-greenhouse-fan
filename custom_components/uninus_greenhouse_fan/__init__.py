@@ -39,7 +39,7 @@ class FanGroup:
     def snapshot(self) -> dict:
         runtime = {}
         # Retain resumed manual-only targets in this runtime; only holds persist.
-        for fan in sorted(set(self.registry.bindings) | self._manual_targets):
+        for fan in sorted(row["fan_entity"] for row in self.registry.devices.values()):
             status = self.controller.status(fan)
             if fan not in self.registry.bindings and status["mode"] == "auto":
                 status["reason"] = "unbound"
@@ -68,15 +68,17 @@ class FanGroup:
 
     async def manual(self, fan: str, mode: str) -> dict:
         """A manual command holds automation until explicit resume."""
-        if not self.registry.valid_device(fan) or mode not in ("on", "off", "auto"):
+        if not self.registry.valid_device(fan) or not self.registry.owned(fan) or mode not in ("on", "off", "auto"):
             raise ValueError("Invalid fan or mode")
         async with self._lock:
             self._require_active()
+            self._require_exclusive(fan)
             if mode != "auto" and self._fan_state(fan) not in ("on", "off"):
                 raise ValueError("Fan state unavailable")
             # Save the hold first: if device service fails, automation remains held.
             await self.registry.set_mode(fan, mode)
             self._require_active()
+            self._require_exclusive(fan)
             self.controller.set_mode(fan, mode)
             self._manual_targets.add(fan)
             if mode != "auto":
@@ -97,6 +99,11 @@ class FanGroup:
             for fan, binding in tuple(self.registry.bindings.items()):
                 if not self.active:
                     return
+                try:
+                    self._require_exclusive(fan)
+                except ValueError:
+                    self.controller.reset(fan)
+                    continue
                 temperature = safe_reading(self.hass.states.get(binding["temperature_entity"]), "temperature")
                 humidity = safe_reading(self.hass.states.get(binding["humidity_entity"]), "humidity")
                 action = self.controller.evaluate(fan, True, self._fan_state(fan), temperature, humidity, now)
@@ -127,12 +134,59 @@ class FanGroup:
         async with self._lock:
             self.controller.set_policy(_entry_policy(entry))
 
+    def _require_exclusive(self, fan):
+        runtime = self.hass.data.get(DOMAIN, {})
+        for entry in self.hass.config_entries.async_entries(DOMAIN):
+            if entry.entry_id == self.entry.entry_id:
+                continue
+            group = runtime.get(entry.entry_id)
+            if group is None or not group.active:
+                raise ValueError('Another group is unloaded; reload all groups before assigning or controlling outputs')
+            if group.registry.owned(fan):
+                raise ValueError('duplicate_output')
+
+    async def save_device(self, identity, record, expected_revision=None):
+        lock = self.hass.data.setdefault(DOMAIN, {}).setdefault('_devices_lock', asyncio.Lock())
+        async with lock, self._lock:
+            self._require_active()
+            self._require_exclusive(record.get('fan_entity'))
+            from .sensors import compatible_sensor
+            old = self.registry.devices.get(identity)
+            for field, kind in (('temperature_entity', 'temperature'), ('humidity_entity', 'humidity')):
+                entity = record.get(field)
+                if entity and not compatible_sensor(self.hass.states.get(entity), kind):
+                    # Keep a configured offline source when editing its display name.
+                    if not old or old.get(field) != entity:
+                        raise ValueError(field)
+            output = record.get('fan_entity')
+            if self.hass.states.get(output) is None and (not old or old['fan_entity'] != output):
+                raise ValueError('fan_entity')
+            result = await self.registry.save_device(identity, record, expected_revision)
+            if old and old['fan_entity'] != result['fan_entity']:
+                self.controller._states.pop(old['fan_entity'], None)
+                self._manual_targets.discard(old['fan_entity'])
+                self.controller._states.pop(result['fan_entity'], None)
+            if old is None or any(old.get(key) != result.get(key) for key in ('fan_entity', 'temperature_entity', 'humidity_entity')):
+                self.controller.reset(result['fan_entity'])
+            return result
+
+    async def remove_device(self, identity, expected_revision=None):
+        async with self._lock:
+            self._require_active()
+            old = self.registry.devices.get(identity)
+            await self.registry.remove_device(identity, expected_revision)
+            self.controller._states.pop(old['fan_entity'], None)
+            self._manual_targets.discard(old['fan_entity'])
+
     def _require_active(self) -> None:
         if not self.active:
             raise ValueError("Fan control group is unloaded")
+        if getattr(getattr(self.hass, 'state', None), 'value', None) == 'STOPPING':
+            raise OSError('Home Assistant is stopping; fan control is disabled')
 
     def stop(self) -> None:
         self.active = False
+        self.registry.close()
         for unsubscribe in self._unsubs:
             unsubscribe()
         self._unsubs.clear()
@@ -149,14 +203,40 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     return True
 
 
+def _lifecycle_lock(hass: HomeAssistant, entry: ConfigEntry) -> asyncio.Lock:
+    # Retain this lock after runtime removal so a reload cannot outrun drain.
+    locks = hass.data.setdefault(DOMAIN, {}).setdefault('_lifecycle_locks', {})
+    return locks.setdefault(entry.entry_id, asyncio.Lock())
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Serialize loading with completion of the prior runtime's mutations."""
+    async with _lifecycle_lock(hass, entry):
+        await _async_drain_entry(hass, entry)
+        return await _async_setup_entry(hass, entry)
+
+
+async def _async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Load authoritative bindings; register commands once for all entries."""
     from .frontend import async_ensure_card_resource
 
     data = hass.data.setdefault(DOMAIN, {})
     await async_ensure_card_resource(hass)
-    store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}")
-    registry = Registry(entry.entry_id, await store.async_load(), store.async_save)
+    store = Store(hass, 1, f"{DOMAIN}.{entry.entry_id}", atomic_writes=True)
+    from .persistence import VerifiedStore
+    group = None
+    def fail_closed():
+        if group is not None:
+            group.stop()
+    persistence = VerifiedStore(hass, store, None, fail_closed)
+    if persistence.path:
+        await hass.async_add_executor_job(persistence.check_quarantine)
+    loaded = await store.async_load()
+    persistence.previous = loaded
+    registry = Registry(entry.entry_id, loaded, persistence.save)
+    if registry.migrated:
+        await persistence.save(registry.payload())
+        registry.migrated = False
     group = FanGroup(hass, entry, registry)
     data[entry.entry_id] = group
     await async_setup(hass, {})
@@ -164,9 +244,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
+async def _async_drain_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    data = hass.data[DOMAIN]
+    group = data.get(entry.entry_id)
+    if group is None:
+        return
+    group.stop()
+
+    async def drain():
+        # Group -> registry matches mutation lock order. The registry lock covers
+        # save() from before scheduling _prepare through durable publication.
+        async with group._lock, group.registry._lock:
+            pass
+
+    task = asyncio.create_task(drain())
+    cancelled = False
+    while not task.done():
+        try:
+            await asyncio.shield(task)
+        except asyncio.CancelledError:
+            cancelled = True
+    task.result()
+    data.pop(entry.entry_id)
+    if cancelled:
+        raise asyncio.CancelledError
+
+
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Stop periodic control without deleting stored bindings."""
-    group = hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    if group:
-        group.stop()
+    """Gate control immediately, then drain before permitting another setup."""
+    async with _lifecycle_lock(hass, entry):
+        await _async_drain_entry(hass, entry)
     return True

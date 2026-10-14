@@ -24,8 +24,36 @@ const states = {
   'sensor.t':{state:'32.5',attributes:{unit_of_measurement:'°C',device_class:'temperature'}},
   'sensor.h':{state:'73',attributes:{unit_of_measurement:'%',device_class:'humidity'}},
 };
-const snapshot = (revision=2) => ({entry_id:'group-1',revision,policy:{temperature_on:30,temperature_off:25,humidity_on:80,humidity_off:60,duration_seconds:120},bindings:{'fan.a':{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{'fan.a':{mode:'auto',pending:null,reason:'Ready'}}});
+const snapshot = (revision=2) => ({entry_id:'group-1',revision,devices:['fan.a','fan.b','switch.relay'].map(fan=>({device_id:fan,name:fan,fan_entity:fan})),policy:{temperature_on:30,temperature_off:25,humidity_on:80,humidity_off:60,duration_seconds:120},bindings:{'fan.a':{temperature_entity:'sensor.t',humidity_entity:'sensor.h'}},runtime:{'fan.a':{mode:'auto',pending:null,reason:'Ready'}}});
 const config = {type:'custom:uninus-greenhouse-fan-card',entry_id:'group-1',name:'House',items:[{fan_entity:'fan.a',name:'Front'}],layout:'auto',theme:'dark'};
+test('editor choices are owned configured devices, stable identity and no binding UI', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);
+  const inventory={...snapshot(),devices:[{device_id:'opaque-a',name:'Configured A',fan_entity:'fan.a'},{device_id:'offline',name:'Offline configured',fan_entity:'switch.offline'}]};
+  const calls=[];el.hass=groupHass(groups,msg=>{calls.push(msg);return inventory});await flush();
+  assert.doesNotMatch(el.shadowRoot.innerHTML,/temperature_entity|humidity_entity|data-action="apply"|data-action="discard"|revision/);
+  assert.match(el.shadowRoot.innerHTML,/Offline configured/);
+  assert.doesNotMatch(el.shadowRoot.innerHTML,/switch\.relay/);
+  el.setItemField(0,'device_id','opaque-a');
+  assert.equal(el.config.items[0].device_id,'opaque-a');
+  assert.equal(calls.filter(msg=>msg.type.endsWith('/bind')).length,0);
+});
+
+test('stable device selection follows output edits but never follows deleted identity', async () => {
+  const {Card}=setup();const el=new Card();el.setConfig({...config,items:[{device_id:'stable',fan_entity:'fan.a'}]});
+  let current={...snapshot(),devices:[{device_id:'stable',name:'One',fan_entity:'switch.relay'}]};const writes=[];
+  el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/manual'))writes.push(msg);return current});await flush();
+  assert.equal(el.output(el.config.items[0]),'switch.relay');await el.manual('fan.a','on');assert.equal(writes.length,0);
+  await el.manual('switch.relay','off');assert.equal(writes[0].fan_entity,'switch.relay');
+  current={...current,devices:[]};await el.load();await el.manual('fan.a','on');await el.manual('switch.relay','on');
+  assert.equal(writes.length,1);assert.equal(el.output(el.config.items[0]),'');
+});
+
+test('unregistered literal YAML output displays safely but cannot dispatch', async () => {
+  const {Card}=setup();const el=new Card();el.setConfig(config);let writes=0;
+  el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/manual'))writes++;return {...snapshot(),devices:[]}});await flush();
+  assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
+});
+
 const flush = () => new Promise(resolve => setTimeout(resolve,0));
 
 test('card registers, requests authoritative snapshot and renders global above fan grid', async () => {
@@ -98,39 +126,27 @@ test('manual gate and rendered controls share domain availability and fresh scop
   assert.equal(writes,0);
 });
 
-test('editor applies binding at observed revision; Lovelace config has no sensor copies', async () => {
-  const {Editor}=setup(); const editor=new Editor();editor.setConfig(config);
-  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return groups;return msg.type.endsWith('/bind')?snapshot(3):snapshot(2);}};
-  await flush();
-  editor.setItemField(0,'temperature_entity','sensor.t');
-  editor.setItemField(0,'humidity_entity','sensor.h');
-  await editor.applyBinding(0);
-  assert.deepEqual(JSON.parse(JSON.stringify(calls[2])),{type:'uninus_greenhouse_fan/bind',entry_id:'group-1',expected_revision:2,fan_entity:'fan.a',temperature_entity:'sensor.t',humidity_entity:'sensor.h'});
-  assert.equal(editor.snapshot.revision,3);
-  assert.equal(editor.config.items[0].temperature_entity,undefined);
-  editor.setItemField(0,'name','Updated');
-  assert.equal(editor.events.at(-1).detail.config.items[0].name,'Updated');
+test('editor selects stable devices and display names without sensor copies', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const calls=[];
+  el.hass=groupHass(groups,msg=>{calls.push(msg);return snapshot()});await flush();
+  el.setItemField(0,'device_id','switch.relay');el.setItemField(0,'name','Updated');
+  assert.equal(el.events.at(-1).detail.config.items[0].device_id,'switch.relay');
+  assert.equal(el.events.at(-1).detail.config.items[0].name,'Updated');
+  assert.equal(el.config.items[0].temperature_entity,undefined);
+  assert.equal(calls.filter(x=>x.type.endsWith('/bind')).length,0);
 });
 
 test('switch relay appears in fallback editor picker', async () => {
-  const {Editor}=setup();const editor=new Editor();editor.setConfig(config);
-  editor.hass={states,callWS:async msg=>msg.type.endsWith('/groups')?groups:snapshot()};await flush();
-  assert.match(editor.shadowRoot.innerHTML,/switch\.relay/);
-  editor.setItemField(0,'fan_entity','switch.relay');
-  assert.equal(editor.events.at(-1).detail.config.items[0].fan_entity,'switch.relay');
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();
+  assert.match(el.shadowRoot.innerHTML,/switch\.relay/);el.setItemField(0,'device_id','switch.relay');
+  assert.equal(el.events.at(-1).detail.config.items[0].fan_entity,'switch.relay');
 });
 
-test('failed bind preserves draft and revision; removing item does not unbind', async () => {
-  const {Editor}=setup(); const editor=new Editor();editor.setConfig(config);
-  const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return groups;if(msg.type.endsWith('/bind'))throw Error('Revision conflict');return snapshot();}};
-  await flush();editor.setItemField(0,'temperature_entity','sensor.t');editor.setItemField(0,'humidity_entity','sensor.h');
-  await editor.applyBinding(0);
-  assert.equal(editor.drafts[0].temperature_entity,'sensor.t');
-  assert.match(editor.shadowRoot.innerHTML,/Revision conflict/);
-  assert.equal(editor.snapshot.revision,2);
-  editor.removeItem(0);
-  assert.equal(calls.filter(x=>x.type.endsWith('/bind')).length,1);
-  assert.equal(editor.config.items.length,0);
+test('invalid selection is rejected and display removal makes no backend writes', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const writes=[];
+  el.hass=groupHass(groups,msg=>{if(!msg.type.endsWith('/get'))writes.push(msg);return snapshot()});await flush();
+  el.setItemField(0,'device_id','unowned');assert.equal(el.config.items[0].fan_entity,'fan.a');
+  el.removeItem(0);assert.equal(el.config.items.length,0);assert.equal(writes.length,0);
 });
 
 const groups = [{entry_id:'group-1',name:'North greenhouse',loaded:true}];
@@ -148,16 +164,11 @@ test('YAML and editor resolve a unique loaded group without typing its ID', asyn
 
 const multi=[...groups,{entry_id:'group-2',name:'South greenhouse',loaded:true}];
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no});return {promise,resolve,reject}};
-test('selection restores group-scoped drafts and ignores old bind completion', async () => {
-  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();
-  el.hass=groupHass(multi,msg=>msg.type.endsWith('/bind')?pending.promise:snapshot());await flush();
-  el.setItemField(0,'temperature_entity','sensor.h');
-  const bind=el.applyBinding(0);el.selectGroup('group-2');await flush();
-  assert.equal(el.drafts[0].temperature_entity,undefined);
-  pending.resolve(snapshot(99));await bind;
-  assert.equal(el.snapshot.revision,2);assert.equal(el.status[0],undefined);
-  el.selectGroup('group-1');await flush();
-  assert.equal(el.drafts[0].temperature_entity,'sensor.h');
+test('selection restores group-scoped display names and ignores old snapshot completion', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();let paused=false;
+  el.hass=groupHass(multi,msg=>paused && msg.entry_id==='group-1'?pending.promise:{...snapshot(),entry_id:msg.entry_id});await flush();
+  paused=true;const read=el.load();await flush();el.selectGroup('group-2');await flush();
+  pending.resolve(snapshot(99));await read;assert.equal(el.snapshot.entry_id,'group-2');assert.equal(el.snapshot.revision,2);
 });
 test('manual completion after scope change cannot refresh or clear the new operation', async () => {
   const {Card}=setup();const el=new Card();el.setConfig(config);const pending=deferred();const calls=[];
@@ -176,12 +187,11 @@ test('explicit missing or unloaded saved groups cannot dispatch manual writes', 
   }
 });
 
-test('typing a new draft during pending bind must retain new input', async () => {
-  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();
-  el.hass=groupHass(groups,msg=>msg.type.endsWith('/bind')?pending.promise:snapshot());await flush();
-  el.setItemField(0,'temperature_entity','sensor.t');const operation=el.applyBinding(0);
-  el.setItemField(0,'temperature_entity','sensor.h');pending.resolve(snapshot(3));await operation;
-  assert.equal(el.drafts[0].temperature_entity,'sensor.h');assert.equal(el.drafts[0].revision,2);
+test('typing a new draft during pending snapshot must retain new input', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);const pending=deferred();el.hass=groupHass();await flush();
+  el.hass=groupHass(groups,()=>pending.promise);const read=el.load();await flush();
+  el.setItemField(0,'name','New input');pending.resolve(snapshot(7));await read;
+  assert.equal(el.config.items[0].name,'New input');assert.equal(el.snapshot.revision,7);
 });
 test('discovery distinguishes multi, zero, unloaded and query failure for card and editor', async () => {
   const {Card,Editor}=setup();
@@ -208,14 +218,12 @@ test('latest snapshot request wins and disconnect invalidates discovery, snapsho
   }
 });
 
-test('explicit discard reconciles a retained dirty revision without a write', async () => {
-  const {Editor}=setup();const el=new Editor();el.setConfig(config);let revision=2;let writes=0;
-  el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/bind'))writes++;return snapshot(revision)});await flush();
-  el.setItemField(0,'temperature_entity','sensor.h');revision=8;await el.load();
-  assert.equal(el.drafts[0].revision,2);
-  el.discardDraft(0);assert.equal(el.drafts[0].revision,undefined);
-  el.setItemField(0,'temperature_entity','sensor.t');assert.equal(el.drafts[0].revision,8);
-  assert.equal(writes,0);
+test('dashboard config replacement cancels display draft without backend writes', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig(config);let writes=0;
+  el.hass=groupHass(groups,msg=>{if(!msg.type.endsWith('/get'))writes++;return snapshot()});await flush();
+  el.setItemField(0,'name','Dashboard draft');await el.load();assert.equal(el.config.items[0].name,'Dashboard draft');
+  el.setConfig(config);assert.equal(el.config.items[0].name,'Front');assert.equal(writes,0);
+  assert.doesNotMatch(el.shadowRoot.innerHTML,/data-action="discard"/);
 });
 
 test('unique loaded choice ignores unloaded alternatives without replacing explicit choices', async () => {
@@ -225,17 +233,14 @@ test('unique loaded choice ignores unloaded alternatives without replacing expli
     assert.equal(el.resolvedId,'group-1');assert.equal(el.snapshot.revision,2);
   }
 });
-test('disconnect invalidates late bind and manual completion without rendering or dispatching', async () => {
+test('disconnect invalidates late snapshot and manual completion without rendering or dispatching', async () => {
   const {Card,Editor}=setup();
   for(const Class of [Card,Editor])for(const reject of [false,true]) {
-    const el=new Class();el.setConfig(config);const late=deferred();const calls=[];
-    el.hass=groupHass(groups,msg=>{calls.push(msg);return msg.type.endsWith('/get')?snapshot():late.promise});await flush();
-    if(Class===Editor)el.setItemField(0,'temperature_entity','sensor.t');
-    const action=Class===Card?el.manual('fan.a','off'):el.applyBinding(0);const html=el.shadowRoot.innerHTML;
-    el.disconnectedCallback();const count=calls.length;
-    reject?late.reject(Error('stale failure')):late.resolve(snapshot(99));await action;
+    const el=new Class();el.setConfig(config);const late=deferred();const calls=[];el.hass=groupHass();await flush();
+    el.hass=groupHass(groups,msg=>{calls.push(msg);return late.promise});
+    const action=Class===Card?el.manual('fan.a','off'):el.load();await flush();const html=el.shadowRoot.innerHTML;
+    el.disconnectedCallback();const count=calls.length;reject?late.reject(Error('stale failure')):late.resolve(snapshot(99));await action;
     assert.equal(el.snapshot,null);assert.equal(el.error,'');assert.equal(el.shadowRoot.innerHTML,html);assert.equal(calls.length,count);
-    if(Class===Editor)assert.equal(el.drafts[0].temperature_entity,'sensor.t');
   }
 });
 
@@ -248,9 +253,9 @@ test('automatic re-resolution never sends a command using the previous group sna
   next.resolve({...snapshot(),entry_id:'group-2'});await read;
 });
 
-test('switching groups preserves distinct drafts for duplicate displayed fans', async () => {
-  const {Editor}=setup();const el=new Editor();el.setConfig({...config,items:[config.items[0],{...config.items[0],name:'Second view'}]});el.hass=groupHass(multi);await flush();
-  el.setItemField(0,'temperature_entity','sensor.t');el.setItemField(1,'temperature_entity','sensor.h');
-  el.selectGroup('group-2');await flush();el.selectGroup('group-1');await flush();
-  assert.equal(el.drafts[0].temperature_entity,'sensor.t');assert.equal(el.drafts[1].temperature_entity,'sensor.h');
+test('switching groups preserves distinct display names for duplicate displayed fans', async () => {
+  const {Editor}=setup();const el=new Editor();el.setConfig({...config,items:[config.items[0],{...config.items[0],name:'Second view'}]});
+  el.hass=groupHass(multi,msg=>({...snapshot(),entry_id:msg.entry_id}));await flush();
+  el.setItemField(0,'name','First');el.setItemField(1,'name','Second');el.selectGroup('group-2');await flush();el.selectGroup('group-1');await flush();
+  assert.equal(el.config.items[0].name,'First');assert.equal(el.config.items[1].name,'Second');
 });

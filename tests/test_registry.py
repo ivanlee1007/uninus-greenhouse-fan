@@ -20,7 +20,7 @@ class RegistryTest(unittest.IsolatedAsyncioTestCase):
             self.saved.append(data)
         self.save = save
         self.entities = dict.fromkeys(('fan.a', 'switch.a', 'sensor.t', 'sensor.h', 'sensor.t2'), object())
-        self.registry = Registry('entry-1', {}, self.save)
+        self.registry = Registry('entry-1', {'revision':0, 'bindings':{}, 'manual_modes':{}, 'devices':{fan:{'device_id':fan,'name':fan,'fan_entity':fan,'temperature_entity':'','humidity_entity':''} for fan in ('fan.a','switch.a')}}, self.save)
 
     async def test_unbound_manual_hold_roundtrip_and_invalid_ids_fail_closed(self):
         for fan in ('fan.a', 'switch.a'):
@@ -42,7 +42,7 @@ class RegistryTest(unittest.IsolatedAsyncioTestCase):
     async def test_unbound_failed_save_does_not_commit_hold(self):
         async def fail(data):
             raise OSError('storage offline')
-        registry = Registry('entry-1', {}, fail)
+        registry = Registry('entry-1', {'revision':0, 'bindings':{}, 'manual_modes':{}, 'devices':{fan:{'device_id':fan,'name':fan,'fan_entity':fan,'temperature_entity':'','humidity_entity':''} for fan in ('fan.a','switch.a')}}, fail)
         with self.assertRaises(OSError):
             await registry.set_mode('switch.a', 'off')
         self.assertEqual(registry.manual_modes, {})
@@ -84,7 +84,7 @@ class RegistryTest(unittest.IsolatedAsyncioTestCase):
     async def test_failed_persistence_does_not_commit(self):
         async def fail(data):
             raise OSError('storage offline')
-        registry = Registry('entry-1', {}, fail)
+        registry = Registry('entry-1', {'revision':0, 'bindings':{}, 'manual_modes':{}, 'devices':{fan:{'device_id':fan,'name':fan,'fan_entity':fan,'temperature_entity':'','humidity_entity':''} for fan in ('fan.a','switch.a')}}, fail)
         with self.assertRaises(OSError):
             await registry.bind(0, 'fan.a', 'sensor.t', 'sensor.h', self.entities)
         self.assertEqual(registry.snapshot()['revision'], 0)

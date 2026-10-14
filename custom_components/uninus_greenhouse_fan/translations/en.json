@@ -1,4 +1,96 @@
 {
-  "config": {"step": {"user": {"title": "Greenhouse fan group", "description": "Create a shared control policy. Set each fan's sensors in the card editor.", "data": {"name": "Group name", "temperature_on": "Start above temperature (°C)", "temperature_off": "Stop at or below temperature (°C)", "humidity_on": "Start above humidity (%)", "humidity_off": "Stop at or below humidity (%)", "duration_seconds": "Required duration (seconds)"}}}, "error": {"invalid_policy": "Check thresholds, hysteresis and duration"}},
-  "options": {"step": {"init": {"title": "Shared fan policy", "description": "Sensor bindings are edited per fan in the card editor, not here.", "data": {"temperature_on": "Start above temperature (°C)", "temperature_off": "Stop at or below temperature (°C)", "humidity_on": "Start above humidity (%)", "humidity_off": "Stop at or below humidity (%)", "duration_seconds": "Required duration (seconds)"}}}, "error": {"invalid_policy": "Check thresholds, hysteresis and duration"}}
+  "config": {
+    "step": {
+      "user": {
+        "title": "Greenhouse fan group",
+        "description": "Create a shared policy, then add devices and sensor sources in this integration’s Configure menu.",
+        "data": {
+          "name": "Group name",
+          "temperature_on": "Start above temperature (°C)",
+          "temperature_off": "Stop at or below temperature (°C)",
+          "humidity_on": "Start above humidity (%)",
+          "humidity_off": "Stop at or below humidity (%)",
+          "duration_seconds": "Required duration (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_policy": "Check thresholds, hysteresis and duration"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Devices and shared policy",
+        "menu_options": {
+          "devices": "Configured devices",
+          "add_device": "Add device",
+          "edit_device": "Edit device",
+          "remove_device": "Remove device",
+          "policy": "Shared policy"
+        }
+      },
+      "policy": {
+        "title": "Shared policy",
+        "data": {
+          "temperature_on": "Start above temperature (°C)",
+          "temperature_off": "Stop at or below temperature (°C)",
+          "humidity_on": "Start above humidity (%)",
+          "humidity_off": "Stop at or below humidity (%)",
+          "duration_seconds": "Required duration (seconds)"
+        }
+      },
+      "devices": {
+        "title": "Configured devices",
+        "description": "{devices}"
+      },
+      "add_device": {
+        "title": "Add device"
+      },
+      "edit_device": {
+        "title": "Edit device",
+        "data": {
+          "device": "Device"
+        }
+      },
+      "remove_device": {
+        "title": "Remove device",
+        "data": {
+          "device": "Device"
+        }
+      },
+      "device": {
+        "title": "Save device settings",
+        "description": "Name and output are required. Leave BOTH sensors blank for manual-only control; automatic control needs both sources (°C / %). Submit once to save the complete device. Cancel writes nothing. Output replacement clears the old hold/timers; the new output starts automatic evaluation with fresh timers.",
+        "data": {
+          "name": "Device name",
+          "fan_entity": "Output entity (fan / switch)",
+          "temperature_entity": "Temperature source (optional)",
+          "humidity_entity": "Humidity source (optional)"
+        }
+      },
+      "confirm_remove": {
+        "title": "Confirm device removal",
+        "description": "Remove {name}? Automation stops and its hold is cleared. This does not switch the output.",
+        "data": {
+          "confirm": "Confirm removal"
+        }
+      }
+    },
+    "error": {
+      "invalid_policy": "Check thresholds, hysteresis and duration",
+      "invalid_device": "Check name, existing output, and sensor class/units",
+      "duplicate_output": "This output already belongs to this or another group",
+      "sensor_pair": "Choose both sensor sources or leave both blank",
+      "storage_quarantined": "Storage could not be reconciled. This group is disabled, including after restart. Input is retained. Check HA logs and follow the persistence recovery instructions; do not simply retry.",
+      "save_failed": "Could not save. Input is retained; check HA logs and retry.",
+      "conflict": "Settings changed. Cancel and reopen to review the current device before saving.",
+      "ownership_unavailable": "Another group is unloaded, so output ownership cannot be verified. Load every group first."
+    },
+    "abort": {
+      "group_unloaded": "This group is unloaded. Load the integration first.",
+      "device_missing": "Device was removed. Reopen settings.",
+      "no_devices": "No devices yet. Choose Add device first."
+    }
+  }
 }

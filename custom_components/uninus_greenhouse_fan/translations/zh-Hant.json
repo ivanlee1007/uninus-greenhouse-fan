@@ -1,4 +1,96 @@
 {
-  "config": {"step": {"user": {"title": "溫室風扇控制群組", "description": "建立共用門檻；各風扇感測來源由卡片編輯器設定。", "data": {"name": "群組名稱", "temperature_on": "溫度高於此值啟動 (°C)", "temperature_off": "溫度低於或等於此值停止 (°C)", "humidity_on": "濕度高於此值啟動 (%)", "humidity_off": "濕度低於或等於此值停止 (%)", "duration_seconds": "條件持續秒數"}}}, "error": {"invalid_policy": "請檢查門檻上下限及持續秒數"}},
-  "options": {"step": {"init": {"title": "共用風扇門檻", "description": "逐台感測來源在卡片編輯器設定，此處不重複設定。", "data": {"temperature_on": "溫度高於此值啟動 (°C)", "temperature_off": "溫度低於或等於此值停止 (°C)", "humidity_on": "濕度高於此值啟動 (%)", "humidity_off": "濕度低於或等於此值停止 (%)", "duration_seconds": "條件持續秒數"}}}, "error": {"invalid_policy": "請檢查門檻上下限及持續秒數"}}
+  "config": {
+    "step": {
+      "user": {
+        "title": "溫室風扇控制群組",
+        "description": "建立共用控制門檻；之後在整合「設定」新增裝置與感測來源。",
+        "data": {
+          "name": "群組名稱",
+          "temperature_on": "溫度高於此值啟動 (°C)",
+          "temperature_off": "溫度低於或等於此值停止 (°C)",
+          "humidity_on": "濕度高於此值啟動 (%)",
+          "humidity_off": "濕度低於或等於此值停止 (%)",
+          "duration_seconds": "條件持續秒數"
+        }
+      }
+    },
+    "error": {
+      "invalid_policy": "請檢查門檻上下限及持續秒數"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "裝置與共用門檻",
+        "menu_options": {
+          "devices": "已設定裝置",
+          "add_device": "新增裝置",
+          "edit_device": "編輯裝置",
+          "remove_device": "移除裝置",
+          "policy": "共用控制門檻"
+        }
+      },
+      "policy": {
+        "title": "共用控制門檻",
+        "data": {
+          "temperature_on": "溫度高於此值啟動 (°C)",
+          "temperature_off": "溫度低於或等於此值停止 (°C)",
+          "humidity_on": "濕度高於此值啟動 (%)",
+          "humidity_off": "濕度低於或等於此值停止 (%)",
+          "duration_seconds": "條件持續秒數"
+        }
+      },
+      "devices": {
+        "title": "已設定裝置",
+        "description": "{devices}"
+      },
+      "add_device": {
+        "title": "新增裝置"
+      },
+      "edit_device": {
+        "title": "編輯裝置",
+        "data": {
+          "device": "裝置"
+        }
+      },
+      "remove_device": {
+        "title": "移除裝置",
+        "data": {
+          "device": "裝置"
+        }
+      },
+      "device": {
+        "title": "儲存裝置設定",
+        "description": "名稱與輸出必填。兩個感測來源皆留空即可僅手動控制；自動控制需完整溫濕度來源（°C / %）。按儲存一次寫入完整裝置；取消不寫入。更換輸出會清除舊保持與計時；新輸出只從全新計時開始自動控制。",
+        "data": {
+          "name": "裝置名稱",
+          "fan_entity": "輸出實體（風扇／開關）",
+          "temperature_entity": "溫度感測來源（選填）",
+          "humidity_entity": "濕度感測來源（選填）"
+        }
+      },
+      "confirm_remove": {
+        "title": "確認移除裝置",
+        "description": "移除 {name}？停止自動控制並清除保持，不會切換輸出。",
+        "data": {
+          "confirm": "確認移除"
+        }
+      }
+    },
+    "error": {
+      "invalid_policy": "請檢查上下限與持續時間",
+      "invalid_device": "請檢查名稱、現有輸出與感測類型／單位",
+      "duplicate_output": "此輸出已由本群組或另一群組管理",
+      "sensor_pair": "請選擇完整溫濕度來源，或兩者皆清空",
+      "storage_quarantined": "無法確認儲存狀態，此群組已停用，重新啟動後也不會控制設備。輸入已保留；請查看 HA 日誌並依照持久化復原說明處理，請勿直接重試。",
+      "save_failed": "無法儲存。輸入已保留；請檢查 HA 日誌後重試。",
+      "conflict": "設定已變更。請取消並重新開啟，核對目前裝置設定後儲存。",
+      "ownership_unavailable": "其他群組尚未載入，無法確認輸出歸屬。請先載入所有群組。"
+    },
+    "abort": {
+      "group_unloaded": "此群組尚未載入，請先載入整合。",
+      "device_missing": "裝置已移除，請重新開啟。",
+      "no_devices": "尚無裝置，請先選擇新增裝置。"
+    }
+  }
 }

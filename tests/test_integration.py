@@ -26,7 +26,9 @@ def track(hass, callback, interval):
 module('homeassistant.helpers.event',async_track_time_interval=track)
 class FakeStore:
     records={}
-    def __init__(self,hass,version,key):self.key=key
+    def __init__(self,hass,version,key, *, atomic_writes=False):
+        self.key=key
+        self.atomic_writes=atomic_writes
     async def async_load(self):return self.records.get(self.key)
     async def async_save(self,data):self.records[self.key]=data
 module('homeassistant.helpers.storage',Store=FakeStore)
@@ -100,6 +102,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.hass=FakeHass();self.entry=FakeEntry()
         self.entries=[self.entry]
         self.hass.config_entries=types.SimpleNamespace(async_entries=lambda domain:self.entries)
+        FakeStore.records[f'{app.DOMAIN}.entry-a'] = {'revision':0, 'bindings':{}, 'manual_modes':{}, 'devices':{fan:{'device_id':fan,'name':fan,'fan_entity':fan,'temperature_entity':'','humidity_entity':''} for fan in ('fan.a','switch.a')}}
         self.assertTrue(await app.async_setup_entry(self.hass,self.entry))
         self.group=self.hass.data[app.DOMAIN][self.entry.entry_id]
 
@@ -178,7 +181,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.hass.services.calls, [])
         self.assertEqual(self.group.registry.manual_modes, {})
         self.assertEqual(self.group.registry.revision, 0)
-        self.assertNotIn('switch.a', self.group.snapshot()['runtime'])
+        self.assertEqual(self.group.snapshot()['runtime']['switch.a']['mode'], 'auto')
 
     async def test_unbound_hold_blocks_later_binding_until_resume_and_healthy_duration(self):
         await self.group.manual('switch.a', 'off')
@@ -210,8 +213,12 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.group.registry._save = paused_save
         pending = asyncio.create_task(self.group.manual('switch.a', 'on'))
         await saved.wait()
-        await app.async_unload_entry(self.hass, self.entry)
+        unload = asyncio.create_task(app.async_unload_entry(self.hass, self.entry))
+        await asyncio.sleep(0)
+        self.assertFalse(self.group.active)
+        self.assertFalse(unload.done())
         finish.set()
+        await unload
         with self.assertRaises(ValueError):
             await pending
         self.assertEqual(self.hass.services.calls, [])
@@ -294,8 +301,12 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         self.group.registry._save = paused_save
         pending = asyncio.create_task(self.group.manual('fan.a', 'on'))
         await saved.wait()
-        await app.async_unload_entry(self.hass, self.entry)
+        unload = asyncio.create_task(app.async_unload_entry(self.hass, self.entry))
+        await asyncio.sleep(0)
+        self.assertFalse(self.group.active)
+        self.assertFalse(unload.done())
         finish.set()
+        await unload
         with self.assertRaises(ValueError):
             await pending
         self.assertEqual(self.hass.services.calls, [])
@@ -305,8 +316,12 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         await self.group._lock.acquire()
         pending = asyncio.create_task(self.group.manual('fan.a', 'on'))
         await asyncio.sleep(0)
-        await app.async_unload_entry(self.hass, self.entry)
+        unload = asyncio.create_task(app.async_unload_entry(self.hass, self.entry))
+        await asyncio.sleep(0)
+        self.assertFalse(self.group.active)
+        self.assertFalse(unload.done())
         self.group._lock.release()
+        await unload
         with self.assertRaises(ValueError):
             await pending
         await self.group.evaluate_all()
@@ -328,7 +343,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
     async def test_unbound_never_actuates_and_registers_contract(self):
         self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.1.2')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.2.0')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])

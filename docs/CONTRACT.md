@@ -1,23 +1,17 @@
-# Greenhouse fan v8 implementation contract
+# Greenhouse fan 0.2.0 implementation contract
 
-The approved design is `../uninus-greenhouse-fan-design/sketches-v8/card.html` and `SPEC-v8.md`; it is an **offline design reference**, not production code. Preserve its global-above-grid C composition, fan image/readings/buttons, collapsed global limits, and natural automatic 1→2→3→4+ columns (3+1 is valid). The product card has **no width control**. Runtime and visual editor are distinct.
+The v8 design reference stays global-policy-above-grid with responsive columns. No demo width control is shipped.
 
-## Ownership and persistence
-
-- One integration config entry represents a control group. Its group policy has `temperature_on`, `temperature_off`, `humidity_on`, `humidity_off`, `duration_seconds`. Integration Options edits only this policy (no per-fan sensor form).
-- The integration is the **only authoritative** mapping store, keyed by fan output Entity ID (`fan.*` or relay `switch.*`): `{fan_entity: {temperature_entity, humidity_entity}}`. Revision is an integer. Persist via HA Store per config entry. No implicit sensor guesses. Manual hold state must survive a restart.
-- Card editor item has `fan_entity` and `name`. It displays **temperature and humidity Entity selectors** for the selected fan by reading the integration's authoritative mapping. "Apply sensor sources" submits to the integration immediately, with observed `revision`; Home Assistant's later Lovelace Save only stores view selection/name/theme/layout. If backend apply fails, retain editor draft and show failure; do not claim Save commits backend.
-- Multiple cards selecting the same fan read the same authoritative mapping. Revision mismatch rejects changes and lets user refresh/reconcile. Removing an item from one card does not remove the binding or stop other cards.
-- Unbound/invalid/unavailable readings must not cause automatic control actions. When source or policy changes, reset any pending duration timers. Periodic evaluation must never bypass `duration_seconds`.
-
-## WebSocket contract
-
-- `uninus_greenhouse_fan/get` with `{entry_id}` returns `{entry_id, revision, policy, bindings, runtime}`. `runtime` keyed by fan Entity ID includes `mode`, `pending`, `reason` (and may include on/off). Authenticated users can read.
-- `uninus_greenhouse_fan/bind` with `{entry_id, expected_revision, fan_entity, temperature_entity, humidity_entity}` validates admin privileges, actuator domain (`fan` or `switch`), sensor domains and °C/% units, exact existing IDs, conflicts, then persists and returns a fresh snapshot. On stale revision, reject without mutation. Bind one fan at a time; editor refreshes revision after each success. Do not make card-YAML copies of sources.
-- `uninus_greenhouse_fan/manual` with `{entry_id, fan_entity, mode}` where `mode` is `on`, `off`, or `auto`; admin-only. Manual mode is persisted and holds automation until resumed. Device actuator calls only through HA `fan`/`switch` services, never in demo/tests.
-- Config entry options changes are integration-only; no duplicate sensor selectors there.
-
-## Safety/release gates
-
-- Work is repository-only until the user authorizes deployment. No existing Home Assistant config, fan Entity, dashboard, automation, HACS installation, or release may be modified.
-- Do not tag/release or deploy before both layers and interaction/regression tests pass. Verify GitHub remote exact commit after push.
+- One integration config entry owns one group: shared policy in entry data/options, complete device inventory/bindings/manual holds in HA Store.
+- Native Options menu: named list, Add, Edit, Remove with confirmation, shared policy. Device form saves name/output/optional complete source pair atomically. Cancel is read-only. Stable opaque IDs are independent of name/output.
+- Native output EntitySelector permits fan/switch; source selectors permit sensor temperature/humidity classes. Sources must use °C/%; incomplete pairs fail. Clearing both produces a manual-only device.
+- Device records migrate from legacy binding/hold union with deterministic stable IDs, no actuation and idempotent reload. Existing YAML literal fan_entity resolves only configured ownership; legacy unstored display-only outputs need explicit Add.
+- Duplicate output ownership within/across loaded groups is rejected. An unloaded other group conservatively blocks assignment and control until every group loads. No arbitrary-output control endpoint.
+- Editor only picks selected-group inventory including offline records, display names/order/group/appearance. Dashboard Save remains display-only. No bind call, sensor inputs, Apply/Discard, revision or ID user field.
+- New selections store device_id and follow output edits; deleted IDs never fall back. Literal fan_entity remains backward compatible.
+- Snapshot devices fields are allowlisted device_id/name/fan_entity/temperature_entity/humidity_entity. Runtime is output-keyed; /get and /groups are authenticated read-only.
+- Admin-only /manual accepts configured owned fan_entity and on/off/auto. Holds save before dispatch; no sensors needed for manual. Resume only clears hold. Auto remains fail-closed with duration/hysteresis.
+- Compatibility /bind can update an existing configured output only, using an internal optimistic revision. It cannot add unconfigured bindings and is never called by the editor.
+- Sources reset pending timers preserving manual holds; name-only edits leave them unchanged. Output replacement keeps identity but clears old holds/timers and does not actuate old/new hardware while saving. New output auto starts from fresh evaluation (zero duration may act next tick). Removal clears automation/holds without switching physical state.
+- HA Store uses atomic_writes=True. Before candidate writes, an atomically persisted and read-verified .pending journal retains the previous HA JSON envelope. Candidate bytes receive up to three readback attempts. Failed verification triggers verified rollback; only a reconciled prior record is a retry-safe save failure. Failed rollback/verification disables the group and retains durable quarantine, blocking setup before Store loads after restart. Cancellation drains the real executor writer, then rolls back while locks remain held; unload/shutdown never dispatch after awaited persistence. See [persistence recovery](PERSISTENCE.md). Native Options errors retain input; stale revision requires reopening.
+- Repository-only authorization: no commit/push/release/deploy/restart/live HA/hardware operation.
