@@ -12,6 +12,12 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class HacsPackagingTest(unittest.TestCase):
+    def test_manifest_and_frontend_version_contract(self):
+        metadata = json.loads((ROOT / 'custom_components/uninus_greenhouse_fan/manifest.json').read_text(encoding='utf-8'))
+        self.assertEqual(metadata['version'], '0.1.2')
+        frontend = (ROOT / 'custom_components/uninus_greenhouse_fan/frontend.py').read_text(encoding='utf-8')
+        self.assertIn('CARD_VERSION = "0.1.2"', frontend)
+
     def test_download_ref_has_valid_root_hacs_manifest(self):
         path = ROOT / "hacs.json"
         self.assertTrue(path.is_file(), "HACS refuses explicit download refs without root hacs.json")

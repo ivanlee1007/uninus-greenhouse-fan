@@ -107,6 +107,149 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
         await app.async_unload_entry(self.hass,self.entry)
         self.assertEqual(listeners,[])
 
+    async def test_unbound_manual_outputs_persist_reload_and_resume_without_actuation(self):
+        for fan in ('fan.a', 'switch.a'):
+            for mode in ('on', 'off'):
+                result = await self.group.manual(fan, mode)
+                self.assertEqual(result['bindings'], {})
+                self.assertEqual(result['runtime'][fan]['mode'], mode)
+                self.assertEqual(self.hass.services.calls[-1], (fan.split('.')[0], 'turn_'+mode, {'entity_id':fan}, True))
+            await app.async_unload_entry(self.hass, self.entry)
+            await app.async_setup_entry(self.hass, self.entry)
+            self.group = self.hass.data[app.DOMAIN][self.entry.entry_id]
+            self.assertEqual(self.group.snapshot()['runtime'][fan]['mode'], 'off')
+            before = len(self.hass.services.calls)
+            await self.group.evaluate_all()
+            result = await self.group.manual(fan, 'auto')
+            self.assertEqual(result['runtime'][fan]['mode'], 'auto')
+            self.assertEqual(result['runtime'][fan]['reason'], 'unbound')
+            await self.group.evaluate_all()
+            self.assertEqual(len(self.hass.services.calls), before)
+            self.assertNotIn(fan, self.group.registry.manual_modes)
+
+    async def test_manual_rejects_invalid_missing_unavailable_outputs_without_save(self):
+        for fan, mode in [('sensor.t','on'), ('light.a','off'), ('fan.missing','on'), ('fan.','on'), ('switch.a','bad'), ('fan.a','ON')]:
+            with self.subTest(fan=fan, mode=mode), self.assertRaises(ValueError):
+                await self.group.manual(fan, mode)
+        for value in ('unknown', 'unavailable', 'invalid'):
+            self.hass.states['fan.a'].state = value
+            with self.assertRaises(ValueError):
+                await self.group.manual('fan.a', 'on')
+        self.assertEqual(self.group.registry.revision, 0)
+        self.assertEqual(self.hass.services.calls, [])
+
+    async def test_manual_unbound_uses_no_sensor_data_and_failed_service_keeps_hold(self):
+        self.hass.states.pop('sensor.t')
+        self.hass.states['sensor.h'].state = 'unavailable'
+        async def fail(*args, **kwargs):
+            raise RuntimeError('device offline')
+        self.hass.services.async_call = fail
+        with self.assertRaises(RuntimeError):
+            await self.group.manual('switch.a', 'on')
+        self.assertEqual(self.group.snapshot()['runtime']['switch.a']['mode'], 'on')
+        self.assertEqual(FakeStore.records[f'{app.DOMAIN}.entry-a']['manual_modes'], {'switch.a':'on'})
+        self.hass.states.pop('switch.a')
+        await self.group.manual('switch.a', 'auto')
+        self.assertEqual(self.group.registry.manual_modes, {})
+
+    async def test_unbound_manual_rechecks_availability_after_save(self):
+        saved, finish = asyncio.Event(), asyncio.Event()
+        original = self.group.registry._save
+        async def paused_save(data):
+            saved.set()
+            await finish.wait()
+            await original(data)
+        self.group.registry._save = paused_save
+        pending = asyncio.create_task(self.group.manual('switch.a', 'on'))
+        await saved.wait()
+        self.hass.states['switch.a'].state = 'unavailable'
+        finish.set()
+        with self.assertRaises(ValueError):
+            await pending
+        self.assertEqual(self.hass.services.calls, [])
+        self.assertEqual(self.group.registry.manual_modes, {'switch.a':'on'})
+
+    async def test_unbound_save_failure_never_dispatches_or_commits(self):
+        async def fail(data):
+            raise OSError('storage offline')
+        self.group.registry._save = fail
+        with self.assertRaises(OSError):
+            await self.group.manual('switch.a', 'on')
+        self.assertEqual(self.hass.services.calls, [])
+        self.assertEqual(self.group.registry.manual_modes, {})
+        self.assertEqual(self.group.registry.revision, 0)
+        self.assertNotIn('switch.a', self.group.snapshot()['runtime'])
+
+    async def test_unbound_hold_blocks_later_binding_until_resume_and_healthy_duration(self):
+        await self.group.manual('switch.a', 'off')
+        await self.group.bind(1, 'switch.a', 'sensor.t', 'sensor.h')
+        for now in (0, 2000):
+            with patch.object(app, 'monotonic', return_value=now):
+                await self.group.evaluate_all()
+        self.assertEqual(len(self.hass.services.calls), 1)
+        await self.group.manual('switch.a', 'auto')
+        self.hass.states['sensor.t'].state = 'unavailable'
+        for now in (2001, 4000):
+            with patch.object(app, 'monotonic', return_value=now):
+                await self.group.evaluate_all()
+        self.assertEqual(len(self.hass.services.calls), 1)
+        self.hass.states['sensor.t'].state = '32'
+        for now in (4001, 4121):
+            with patch.object(app, 'monotonic', return_value=now):
+                await self.group.evaluate_all()
+        self.assertEqual(len(self.hass.services.calls), 2)
+        self.assertEqual(self.hass.services.calls[-1], ('switch', 'turn_on', {'entity_id':'switch.a'}, True))
+
+    async def test_unbound_unload_during_save_keeps_hold_without_dispatch(self):
+        saved, finish = asyncio.Event(), asyncio.Event()
+        original = self.group.registry._save
+        async def paused_save(data):
+            saved.set()
+            await finish.wait()
+            await original(data)
+        self.group.registry._save = paused_save
+        pending = asyncio.create_task(self.group.manual('switch.a', 'on'))
+        await saved.wait()
+        await app.async_unload_entry(self.hass, self.entry)
+        finish.set()
+        with self.assertRaises(ValueError):
+            await pending
+        self.assertEqual(self.hass.services.calls, [])
+        self.assertEqual(FakeStore.records[f'{app.DOMAIN}.entry-a']['manual_modes'], {'switch.a':'on'})
+
+    async def test_binding_failure_is_logged_and_not_misreported_as_filesystem_error(self):
+        from custom_components.uninus_greenhouse_fan.websocket import ws_bind
+        errors = []
+        connection = types.SimpleNamespace(send_error=lambda *args:errors.append(args), send_result=lambda *args:self.fail('unexpected success'))
+        async def fail(*args):
+            raise TypeError('state adapter failure')
+        self.group.bind = fail
+        with self.assertLogs('custom_components.uninus_greenhouse_fan.websocket', level='ERROR') as logs:
+            await ws_bind(self.hass, connection, {'id':1, 'entry_id':'entry-a', 'expected_revision':0, 'fan_entity':'fan.a', 'temperature_entity':'sensor.t', 'humidity_entity':'sensor.h'})
+        self.assertIn('TypeError: state adapter failure', logs.output[0])
+        self.assertEqual(errors[0][1], 'binding_failed')
+        self.assertIn('Home Assistant', errors[0][2])
+        self.assertIn('日誌', errors[0][2])
+        self.assertNotIn('persist', errors[0][2])
+        self.assertEqual(self.group.registry.revision, 0)
+
+    async def test_binding_websocket_works_with_noniterable_state_machine(self):
+        from custom_components.uninus_greenhouse_fan.websocket import ws_bind
+        class StateMachine:
+            def __init__(self, states):
+                self._states = states
+            def get(self, entity_id):
+                return self._states.get(entity_id)
+        self.hass.states = StateMachine(self.hass.states)
+        results, errors = [], []
+        connection = types.SimpleNamespace(send_error=lambda *args:errors.append(args), send_result=lambda id,result:results.append(result))
+        await ws_bind(self.hass, connection, {'id':1, 'entry_id':'entry-a', 'expected_revision':0, 'fan_entity':'fan.a', 'temperature_entity':'sensor.t', 'humidity_entity':'sensor.h'})
+        self.assertEqual(errors, [])
+        self.assertEqual(results[0]['revision'], 1)
+        self.assertEqual(results[0]['bindings']['fan.a'], {'temperature_entity':'sensor.t', 'humidity_entity':'sensor.h'})
+        self.assertEqual(FakeStore.records[f'{app.DOMAIN}.entry-a']['revision'], 1)
+        self.assertEqual(self.hass.services.calls, [])
+
     async def test_setup_without_loaded_entries_registers_groups_once(self):
         hass = FakeHass()
         self.assertTrue(await app.async_setup(hass, {}))
@@ -185,7 +328,7 @@ class IntegrationTest(unittest.IsolatedAsyncioTestCase):
     async def test_unbound_never_actuates_and_registers_contract(self):
         self.assertEqual([c._ws_command for c in commands],['uninus_greenhouse_fan/groups','uninus_greenhouse_fan/get','uninus_greenhouse_fan/bind','uninus_greenhouse_fan/manual'])
         self.assertEqual(self.hass.http.paths[0].path,'/uninus_greenhouse_fan/card.js')
-        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.1.1')
+        self.assertEqual(self.hass.resources.items[0]['url'],'/uninus_greenhouse_fan/card.js?v=0.1.2')
         self.assertEqual(self.hass.resources.items[0]['type'],'module')
         with patch.object(app,'monotonic',return_value=5000):await self.group.evaluate_all()
         self.assertEqual(self.hass.services.calls,[])

@@ -204,6 +204,38 @@ with sync_playwright() as p:
         assert page.evaluate('()=>probe.snapshot===null && probe.error==="" && probe.shadowRoot.innerHTML===detachedHtml')
         if kind=='editor':
             assert page.evaluate('()=>probe.drafts[0].temperature_entity')=='sensor.t3'
+    # Manual-only relay: actual visible clicks, HA mocked, no hardware/network.
+    page.evaluate('''() => {
+      window.unboundCalls=[];
+      const target='switch.manual_only';
+      window.manualSnap={entry_id:'group-1',revision:0,policy:snap.policy,bindings:{},runtime:{}};
+      window.manualCard=document.createElement('uninus-greenhouse-fan-card');
+      document.body.appendChild(manualCard);
+      manualCard.setConfig({entry_id:'group-1',items:[{fan_entity:target,name:'Manual-only relay'}]});
+      manualCard.hass={states:{[target]:{state:'off',attributes:{}}},callWS:async msg=>{
+        if(msg.type.endsWith('/groups'))return [{entry_id:'group-1',name:'Mock group',loaded:true}];
+        if(msg.type.endsWith('/manual')){
+          unboundCalls.push(msg);manualSnap.revision++;
+          manualSnap.runtime[target]={mode:msg.mode,reason:msg.mode==='auto'?'unbound':'manual'};
+        }
+        return structuredClone(manualSnap);
+      }};
+    }''')
+    page.wait_for_function('manualCard.snapshot?.revision===0 && !manualCard.loading')
+    manual_locator=page.locator('uninus-greenhouse-fan-card').last
+    assert manual_locator.locator('button[data-mode="on"]').is_enabled()
+    assert '僅手動控制' in manual_locator.locator('.reason').inner_text()
+    for mode in ('on', 'off'):
+        manual_locator.locator(f'button[data-mode="{mode}"]').click()
+        page.wait_for_function('(mode)=>manualCard.snapshot.runtime["switch.manual_only"].mode===mode',arg=mode)
+        assert manual_locator.locator('button.resume').is_enabled()
+    manual_locator.locator('button.resume').click()
+    page.wait_for_function('manualCard.snapshot.runtime["switch.manual_only"].mode==="auto"')
+    assert '自動未啟用' in manual_locator.locator('.reason').inner_text()
+    assert manual_locator.locator('button.resume').count()==0
+    assert page.evaluate('()=>unboundCalls.map(x=>[x.entry_id,x.fan_entity,x.mode])')==[
+        ['group-1','switch.manual_only','on'],['group-1','switch.manual_only','off'],['group-1','switch.manual_only','auto']]
+    page.evaluate('()=>manualCard.remove()')
     assert not errors,errors
     browser.close()
-print(json.dumps({'browser':'Edge headless','measurements':{str(w):{'row':m['row'],'global_above':m['above'],'overflow':m['overflow']} for w,m in measurements.items()},'discovery':discovery_checks,'lifecycle_races':'passed','editor_binding':'passed','manual':'passed','errors':errors},ensure_ascii=False))
+print(json.dumps({'browser':'Edge headless','measurements':{str(w):{'row':m['row'],'global_above':m['above'],'overflow':m['overflow']} for w,m in measurements.items()},'discovery':discovery_checks,'lifecycle_races':'passed','editor_binding':'passed','manual':'passed','unbound_manual_on_off_resume':'passed','errors':errors},ensure_ascii=False))

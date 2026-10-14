@@ -15,6 +15,14 @@ Home Assistant custom integration and Lovelace card based on the approved **C �
 
 See the [implementation contract](docs/CONTRACT.md) and [approved offline v8 design](docs/design/v8/SPEC-v8.md). The reference demo is **not** production code.
 
+## Manual-only outputs (0.1.2)
+
+- A displayed, available `fan.*` or `switch.*` supports **手動開啟 / 手動關閉** without temperature/humidity bindings. Only automatic control requires a complete, valid binding and usable readings. Wrong-domain, malformed, missing or unavailable outputs cannot be manually actuated.
+- Manual holds are saved before dispatch, survive integration reloads/restarts even for unbound outputs, and remain held when a device command fails. Save failure does not commit a new mode or dispatch a command.
+- **恢復自動** clears the hold without immediately actuating anything. For an unbound output the card explains **僅手動控制 / 自動未啟用**; automatic evaluation stays inactive until both sensor sources are explicitly bound and healthy. A stored hold can be cleared by the backend even if its device is currently missing/unavailable; visible card controls continue to require an available displayed target.
+- Admin-only write permissions, loaded/current control group checks, serialized backend writes and fresh group-scoped card snapshots remain required.
+- Sensor binding lookup now uses Home Assistant StateMachine’s `get()` API rather than dictionary membership. Unexpected binding errors log their traceback and show localized log/reconciliation guidance instead of assuming a filesystem persistence failure. **套用感測來源** remains an explicit backend write; dashboard **Save** remains display-only.
+
 ## Choosing a control group (0.1.1)
 
 1. Add the **UNiNUS Greenhouse Fan** integration in **Settings → Devices & services**, and give each greenhouse control group a recognizable name. Shared thresholds and duration remain in Integration Options.
@@ -45,7 +53,7 @@ node --test tests/test_card.mjs
 python tests/verify_card_browser.py
 ```
 
-The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, manual command, named group discovery/selection, missing/unloaded/error states, and lifecycle races. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
+The browser harness loads the shipped `www/uninus-greenhouse-fan-card.js`, mocks only HA state/WebSocket, tests widths 390/720/1080/1380px, editor source apply, manual command and unbound relay on/off/resume clicks, named group discovery/selection, missing/unloaded/error states, and lifecycle races. Python adapter tests use explicit HA fakes, **not** a running Home Assistant. `custom_components/uninus_greenhouse_fan/card.js` is a byte-identical bundled copy of the source JS. No physical fan was operated.
 
 ## HACS download
 
@@ -57,4 +65,4 @@ This fixes download packaging only; live HA compatibility and physical fan opera
 
 ## Installation and safety gate
 
-Do **not** use this initial branch with production fan outputs. Before any installation: review the integration for the target HA version and permissions, verify config flow and Lovelace Add Card GUI in an isolated HA instance, then obtain explicit authorization for a staged live test. Once installed, bound outputs may be automatically controlled under the selected policy; leaving all fans unbound is fail-closed. No release tag, HACS installation, production configuration change, restart, dashboard write, or fan actuation has been performed in this repository work.
+Do **not** use this initial branch with production fan outputs. Before any installation: review the integration for the target HA version and permissions, verify config flow and Lovelace Add Card GUI in an isolated HA instance, then obtain explicit authorization for a staged live test. Once installed, bound outputs may be automatically controlled under the selected policy; leaving all fans unbound prevents automatic actuation but does not prevent explicitly requested manual commands. No release tag, HACS installation, production configuration change, restart, dashboard write, or fan actuation has been performed in this repository work.

@@ -60,6 +60,44 @@ test('manual command sends exact mode and awaits backend snapshot without optimi
   resolveManual(snapshot());await pending;
 });
 
+test('unbound manual fan and relay controls dispatch and display durable hold/resume', async () => {
+  const {Card}=setup();
+  for(const fan of ['fan.b','switch.relay']) {
+    const el=new Card();const writes=[];
+    el.setConfig({...config,items:[{fan_entity:fan}]});
+    el.hass=groupHass(groups,msg=>{
+      const result={...snapshot(),bindings:{},runtime:{}};
+      if(msg.type.endsWith('/manual')){writes.push(msg);result.runtime[fan]={mode:msg.mode,reason:msg.mode==='auto'?'unbound':'manual'}};
+      return result;
+    });await flush();
+    assert.doesNotMatch(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
+    assert.match(el.shadowRoot.innerHTML,/僅手動控制/);
+    await el.manual(fan,'on');assert.equal(writes.length,1);
+    assert.equal(writes[0].fan_entity,fan);assert.equal(writes[0].mode,'on');
+    assert.match(el.shadowRoot.innerHTML,/class="resume"/);
+    await el.manual(fan,'auto');assert.equal(writes.length,2);
+    assert.match(el.shadowRoot.innerHTML,/自動未啟用/);
+    assert.doesNotMatch(el.shadowRoot.innerHTML,/class="resume"/);
+  }
+});
+
+test('manual gate and rendered controls share domain availability and fresh scope checks', async () => {
+  const {Card}=setup();const el=new Card();let writes=0;
+  el.setConfig({...config,items:[{fan_entity:'fan.b'},{fan_entity:'sensor.t'}]});
+  el.hass=groupHass(groups,msg=>{if(msg.type.endsWith('/manual'))writes++;return {...snapshot(),bindings:{}}});await flush();
+  await el.manual('fan.a','on');await el.manual('sensor.t','on');await el.manual('fan.b','bad');assert.equal(writes,0);
+  assert.match(el.renderFan(el.config.items[1]),/data-mode="on" disabled/);
+  for(const value of ['unknown','unavailable','invalid']) {
+    el.hass={...el.hass,states:{...states,'fan.b':{state:value}}};
+    await el.manual('fan.b','on');assert.match(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
+  }
+  el.hass={...el.hass,states};el.snapshot.entry_id='wrong-group';
+  await el.manual('fan.b','on');assert.match(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
+  el.snapshot.entry_id='group-1';el.loading=true;
+  await el.manual('fan.b','on');assert.match(el.renderFan(el.config.items[0]),/data-mode="on" disabled/);
+  assert.equal(writes,0);
+});
+
 test('editor applies binding at observed revision; Lovelace config has no sensor copies', async () => {
   const {Editor}=setup(); const editor=new Editor();editor.setConfig(config);
   const calls=[];editor.hass={states,callWS:async msg=>{calls.push(msg);if(msg.type.endsWith('/groups'))return groups;return msg.type.endsWith('/bind')?snapshot(3):snapshot(2);}};

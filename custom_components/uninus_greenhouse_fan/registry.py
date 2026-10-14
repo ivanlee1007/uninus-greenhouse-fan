@@ -1,5 +1,6 @@
 """Per-entry, revisioned authoritative sensor binding registry."""
 import asyncio
+import re
 from copy import deepcopy
 
 
@@ -18,7 +19,7 @@ class Registry:
         for fan, pair in bindings.items():
             if not self._valid_pair(fan, pair.get('temperature_entity') if isinstance(pair, dict) else None, pair.get('humidity_entity') if isinstance(pair, dict) else None):
                 raise ValueError('Invalid stored binding')
-        if any(fan not in bindings or mode not in ('on', 'off') for fan, mode in modes.items()):
+        if any(not self.valid_device(fan) or mode not in ('on', 'off') for fan, mode in modes.items()):
             raise ValueError('Invalid stored manual hold')
         self.entry_id = entry_id
         self.revision = revision
@@ -28,9 +29,12 @@ class Registry:
         self._lock = asyncio.Lock()
 
     @staticmethod
+    def valid_device(fan):
+        return isinstance(fan, str) and re.fullmatch(r'(?:fan|switch)\.[a-z0-9_]+', fan) is not None
+
+    @staticmethod
     def _valid_pair(fan, temperature, humidity):
-        return (isinstance(fan, str) and fan.split('.', 1)[0] in ('fan', 'switch') and
-                '.' in fan and bool(fan.split('.', 1)[1]) and
+        return (Registry.valid_device(fan) and
                 all(isinstance(x, str) and x.startswith('sensor.') and len(x) > len('sensor.')
                     for x in (temperature, humidity)))
 
@@ -38,7 +42,7 @@ class Registry:
         return {'entry_id': self.entry_id, 'revision': self.revision, 'bindings': deepcopy(self.bindings)}
 
     async def bind(self, expected_revision, fan, temperature, humidity, existing):
-        if not self._valid_pair(fan, temperature, humidity) or any(entity not in existing for entity in (fan, temperature, humidity)):
+        if not self._valid_pair(fan, temperature, humidity) or any(existing.get(entity) is None for entity in (fan, temperature, humidity)):
             raise ValueError('Invalid or missing entity')
         if type(expected_revision) is not int or expected_revision < 0:
             raise ValueError('Invalid revision')
@@ -55,7 +59,7 @@ class Registry:
 
     async def set_mode(self, fan, mode):
         """Persist manual hold before any actuation; auto removes the hold."""
-        if fan not in self.bindings or mode not in ('auto', 'on', 'off'):
+        if not self.valid_device(fan) or mode not in ('auto', 'on', 'off'):
             raise ValueError('Invalid fan or mode')
         async with self._lock:
             modes = deepcopy(self.manual_modes)

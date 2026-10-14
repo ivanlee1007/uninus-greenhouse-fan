@@ -4,7 +4,7 @@
   const PREFIX = 'uninus_greenhouse_fan/';
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const validId = (value, domain) => typeof value === 'string' && value.startsWith(`${domain}.`) && value.length > domain.length + 1;
-  const validDevice = value => validId(value,'fan') || validId(value,'switch');
+  const validDevice = value => typeof value === 'string' && /^(fan|switch)\.[a-z0-9_]+$/.test(value) && !value.includes('\n');
   const item = value => ({...value,fan_entity:value.fan_entity || '',name:value.name || ''});
   const clean = value => ({...value,type:'custom:uninus-greenhouse-fan-card',entry_id:value.entry_id || '',name:value.name || '',layout:['1','2'].includes(String(value.layout))?String(value.layout):'auto',theme:value.theme === 'light'?'light':'dark',items:Array.isArray(value.items)?value.items.map(item):[]});
   const notify = element => element.dispatchEvent(new CustomEvent('config-changed',{bubbles:true,composed:true,detail:{config:clean(element.config)}}));
@@ -95,8 +95,11 @@
     disconnectedCallback(){clearInterval(this._poll);this._poll=null;super.disconnectedCallback()}
     set hass(value) {this._hass=value;if(this.config && !this.snapshot && !this.loading)this.load();this.render()}
     get hass() {return this._hass}
+    canManual(fan,mode) {
+      return !this.detached && !this.operation && !this.loading && !!this.resolvedId && this.snapshot?.entry_id===this.resolvedId && !this.error && ['on','off','auto'].includes(mode) && validDevice(fan) && this.config?.items.some(x=>x.fan_entity===fan) && ['on','off'].includes(state(this.hass,fan)?.state);
+    }
     async manual(fan,mode) {
-      if(this.operation || !this.resolvedId || !this.snapshot || this.error || !this.snapshot.bindings?.[fan] || !['on','off','auto'].includes(mode) || !validDevice(fan) || !this.config?.items.some(x=>x.fan_entity===fan) || !['on','off'].includes(state(this.hass,fan)?.state))return;
+      if(!this.canManual(fan,mode))return;
       const operation={epoch:this.epoch,id:this.resolvedId};this.operation=operation;this.request++;this.loading=false;
       const current=()=>!this.detached && this.operation===operation && this.epoch===operation.epoch && this.resolvedId===operation.id;
       this.busy=fan;this.error='';this.render();
@@ -108,13 +111,13 @@
     }
     renderFan(slot) {
       const id=slot.fan_entity,fan=state(this.hass,id),binding=this.snapshot?.bindings?.[id],runtime=this.snapshot?.runtime?.[id];
-      const unavailable=!fan || ['unknown','unavailable'].includes(fan.state),bound=validId(binding?.temperature_entity,'sensor')&&validId(binding?.humidity_entity,'sensor');
+      const unavailable=!validDevice(id) || !['on','off'].includes(fan?.state),bound=validId(binding?.temperature_entity,'sensor')&&validId(binding?.humidity_entity,'sensor');
       const temp=bound?number(state(this.hass,binding.temperature_entity),'temperature'):'—',hum=bound?number(state(this.hass,binding.humidity_entity),'humidity'):'—';
       const bad=unavailable||!bound||temp==='—'||hum==='—';const on=!unavailable && fan.state==='on';
       const label=slot.name||fan?.attributes?.friendly_name||id;
-      const mode=runtime?.mode || '—',modeLabel={auto:'自動',on:'手動開啟',off:'手動關閉'}[mode]||'—';
-      const reason=unavailable?'裝置不可用':!bound?'未綁定感測來源':bad?'感測讀值不可用':({unbound:'未綁定感測來源',sensor_unavailable:'感測讀值不可用',fan_unavailable:'裝置不可用',manual:'手動保持',resumed:'已恢復自動',waiting_duration:'條件計時中',threshold_not_met:'維持目前狀態',action_requested:'已下達自動控制',action_failed:'控制指令失敗'}[runtime?.reason]||runtime?.reason||'—');
-      const disabled=unavailable||!bound||!!this.busy||!this.snapshot||!this.resolvedId||!!this.error?'disabled':'';
+      const mode=runtime?.mode || (this.snapshot?.entry_id===this.resolvedId?'auto':'—'),modeLabel={auto:bound?'自動':'自動未啟用',on:'手動開啟',off:'手動關閉'}[mode]||'—';
+      const reason=unavailable?'裝置不可用':!bound?'未綁定感測來源 · 僅手動控制；恢復自動只解除保持，自動未啟用':bad?'感測讀值不可用':({unbound:'未綁定感測來源',sensor_unavailable:'感測讀值不可用',fan_unavailable:'裝置不可用',manual:'手動保持',resumed:'已恢復自動',waiting_duration:'條件計時中',threshold_not_met:'維持目前狀態',action_requested:'已下達自動控制',action_failed:'控制指令失敗'}[runtime?.reason]||runtime?.reason||'—');
+      const disabled=this.canManual(id,'on')?'':'disabled';
       return `<article class="fan-item ${on?'running':'off'} ${bad?'error':''}"><header class="device-title"><h3 title="${escape(label)}">${escape(label)}</h3><span class="badge">● ${unavailable?'未知':on?'已開啟':'已關閉'}</span></header><div class="device-hero">${machine}<div class="live-status"><div class="live-line ${temp==='—'?'unavailable':''}" title="${escape(binding?.temperature_entity||'')}"><span>目前溫度</span><strong>${temp}<small> °C</small></strong></div><div class="live-line ${hum==='—'?'unavailable':''}" title="${escape(binding?.humidity_entity||'')}"><span>目前濕度</span><strong>${hum}<small> %</small></strong></div></div></div><div class="device-details"><div class="mode-row">控制模式 <b>${escape(modeLabel)}</b> · ${escape(runtime?.pending ? '條件計時中' : '開關回報')}</div><p class="reason" title="${escape(reason)}">${escape(reason)}</p></div><div class="controls"><button data-fan="${escape(id)}" data-mode="on" ${disabled} class="${mode==='on'?'selected':''}">手動開啟</button><button data-fan="${escape(id)}" data-mode="off" ${disabled} class="${mode==='off'?'selected':''}">手動關閉</button>${mode==='on'||mode==='off'?`<button class="resume" data-fan="${escape(id)}" data-mode="auto" ${disabled}>恢復自動</button>`:''}</div></article>`;
     }
     render() {

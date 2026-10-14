@@ -1,12 +1,16 @@
 """Authenticated WebSocket contract shared by the Lovelace editor and runtime."""
 from __future__ import annotations
 
+import logging
+
 import voluptuous as vol
 from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .registry import Conflict
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @websocket_api.websocket_command({"type": f"{DOMAIN}/groups"})
@@ -64,7 +68,11 @@ async def ws_bind(hass: HomeAssistant, connection: websocket_api.ActiveConnectio
     except ValueError as error:
         connection.send_error(msg["id"], "invalid_binding", str(error))
     except Exception:
-        connection.send_error(msg["id"], "save_failed", "Could not persist sensor binding")
+        _LOGGER.exception("Could not apply sensor binding for group %s", msg["entry_id"])
+        connection.send_error(
+            msg["id"], "binding_failed",
+            "無法完成感測來源綁定；請檢查 Home Assistant 日誌詳細錯誤，重新讀取綁定並核對草稿後重試",
+        )
     else:
         connection.send_result(msg["id"], result)
 

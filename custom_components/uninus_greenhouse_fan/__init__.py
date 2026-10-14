@@ -31,18 +31,23 @@ class FanGroup:
         self.controller = Controller(_entry_policy(entry))
         for fan, mode in registry.manual_modes.items():
             self.controller.set_mode(fan, mode)
+        self._manual_targets = set(registry.manual_modes)
         self.active = True
         self._lock = asyncio.Lock()
         self._unsubs = []
 
     def snapshot(self) -> dict:
+        runtime = {}
+        # Retain resumed manual-only targets in this runtime; only holds persist.
+        for fan in sorted(set(self.registry.bindings) | self._manual_targets):
+            status = self.controller.status(fan)
+            if fan not in self.registry.bindings and status["mode"] == "auto":
+                status["reason"] = "unbound"
+            runtime[fan] = {**status, "on": self._fan_state(fan) == "on"}
         return {
             **self.registry.snapshot(),
             "policy": self.controller.policy.as_dict(),
-            "runtime": {
-                fan: {**self.controller.status(fan), "on": self._fan_state(fan) == "on"}
-                for fan in self.registry.bindings
-            },
+            "runtime": runtime,
         }
 
     def _fan_state(self, entity_id: str) -> str | None:
@@ -63,8 +68,8 @@ class FanGroup:
 
     async def manual(self, fan: str, mode: str) -> dict:
         """A manual command holds automation until explicit resume."""
-        if fan not in self.registry.bindings or mode not in ("on", "off", "auto"):
-            raise ValueError("Fan is not bound or mode is invalid")
+        if not self.registry.valid_device(fan) or mode not in ("on", "off", "auto"):
+            raise ValueError("Invalid fan or mode")
         async with self._lock:
             self._require_active()
             if mode != "auto" and self._fan_state(fan) not in ("on", "off"):
@@ -73,7 +78,10 @@ class FanGroup:
             await self.registry.set_mode(fan, mode)
             self._require_active()
             self.controller.set_mode(fan, mode)
+            self._manual_targets.add(fan)
             if mode != "auto":
+                if self._fan_state(fan) not in ("on", "off"):
+                    raise ValueError("Fan state unavailable")
                 await self.hass.services.async_call(
                     fan.split(".", 1)[0], "turn_on" if mode == "on" else "turn_off",
                     {"entity_id": fan}, blocking=True,
