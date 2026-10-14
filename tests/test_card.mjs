@@ -66,6 +66,19 @@ test('global mode waits for authoritative response and blocks resume under globa
   assert.match(el.shadowRoot.innerHTML,/role="switch"[^>]*aria-checked="false"/);
 });
 
+test('global manual hides Resume while pending mode changes retain authoritative holds', async () => {
+  const {Card}=setup(),el=new Card();el.setConfig(config);let finish;
+  const held={...snapshot(),control_mode:'auto',runtime:{'fan.a':{mode:'on'}}};
+  el.hass=groupHass(groups,msg=>msg.type.endsWith('/set_control_mode')?new Promise(r=>finish=r):held);await flush();
+  const html=el.shadowRoot.innerHTML;
+  assert.match(html,/<span>自動<\/span><span class="switch-track"/);
+  assert.ok(html.indexOf('class="limit-pair"')<html.indexOf('class="mode-switch"'));
+  const pending=el.setControlMode('manual');assert.match(el.renderFan(el.config.items[0]),/class="resume"/);
+  finish({...held,control_mode:'manual'});await pending;assert.doesNotMatch(el.renderFan(el.config.items[0]),/class="resume"/);
+  const auto=el.setControlMode('auto');assert.doesNotMatch(el.renderFan(el.config.items[0]),/class="resume"/);
+  finish(held);await auto;assert.match(el.renderFan(el.config.items[0]),/class="resume"/);
+});
+
 test('editor choices are owned configured devices, stable identity and no binding UI', async () => {
   const {Editor}=setup();const el=new Editor();el.setConfig(config);
   const inventory={...snapshot(),devices:[{device_id:'opaque-a',name:'Configured A',fan_entity:'fan.a'},{device_id:'offline',name:'Offline configured',fan_entity:'switch.offline'}]};
@@ -94,9 +107,53 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.3.0 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.3.0');assert.equal(Editor.buildVersion,'0.3.0');
+test('loaded custom elements expose readable 0.3.1 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.3.1');assert.equal(Editor.buildVersion,'0.3.1');
 });
+test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
+  const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();
+  el.handleChange({type:'input',target:{dataset:{config:'subtitle_text'},value:'<img src=x onerror=alert(1)> & House'}});
+  const saved=el.events.at(-1).detail.config;
+  assert.equal(saved.subtitle_text,'<img src=x onerror=alert(1)> & House');
+  const reopened=new Editor();reopened.setConfig(saved);assert.equal(reopened.config.subtitle_text,saved.subtitle_text);
+  const card=new Card();card.setConfig(saved);assert.match(card.shadowRoot.innerHTML,/<p class="sub">&lt;img/);assert.doesNotMatch(card.shadowRoot.innerHTML,/<img/);
+  card.setConfig(config);assert.match(card.shadowRoot.innerHTML,/<p class="sub">各區獨立感測/);
+  card.setConfig({...saved,subtitle_text:''});assert.doesNotMatch(card.shadowRoot.innerHTML,/<p class="sub">/);
+  assert.equal(saved.items[0].name,'Front');assert.equal(saved.name,'House');
+});
+
+test('entity subtitle resolves any domain scalar, units, attributes and bounded structured fallback', () => {
+  const {Card}=setup(),card=new Card();
+  const circular={};circular.self=circular;
+  const broken={toJSON(){throw Error('bad')}};
+  for(const [domain,value,attrs,attribute,unit,expected] of [
+    ['sensor',0,{unit_of_measurement:'°C'},'',true,'0 °C'],['switch',false,{},'',true,'false'],['input_text','<b>unsafe</b>',{},'',true,'&lt;b&gt;unsafe&lt;/b&gt;'],['weather','rainy',{},'',false,'rainy'],
+    ['sensor','unknown',{},'',true,'—'],['switch','unavailable',{},'',true,'—'],['sensor',Infinity,{},'',true,'—'],['sensor',null,{},'',true,'—'],
+    ['weather','sunny',{temperature:0,unit_of_measurement:'°C'},'temperature',true,'0'],['weather','sunny',{enabled:false},'enabled',true,'false'],['weather','sunny',{},'missing',true,'—'],
+    ['weather','sunny',{data:[0,false]},'data',true,'[0,false]'],['weather','sunny',{data:{a:1}},'data',true,'{&quot;a&quot;:1}'],['weather','sunny',{data:null},'data',true,'—'],['weather','sunny',{data:circular},'data',true,'—'],['weather','sunny',{data:broken},'data',true,'—'],
+    ['sensor','4',{unit_of_measurement:'kW'},'',false,'4']
+  ]) {
+    const id=domain+'.subtitle';card.setConfig({...config,subtitle_mode:'entity',subtitle_entity:id,subtitle_attribute:attribute,subtitle_unit:unit});card.hass={states:{[id]:{state:value,attributes:attrs}}};
+    assert.equal(card.shadowRoot.innerHTML.match(/<p class="sub">(.*?)<\/p>/s)?.[1],expected,JSON.stringify([domain,attribute,unit]));
+  }
+  card.setConfig({...config,subtitle_mode:'entity',subtitle_entity:'sensor.missing'});assert.match(card.shadowRoot.innerHTML,/<p class="sub">—<\/p>/);
+  card.setConfig({...config,subtitle_mode:'entity',subtitle_entity:''});assert.doesNotMatch(card.shadowRoot.innerHTML,/<p class="sub">/);
+  card.setConfig({...config,subtitle_mode:'entity',subtitle_entity:'weather.long',subtitle_attribute:'data'});card.hass={states:{'weather.long':{state:'sunny',attributes:{data:{long:'x'.repeat(1000)}}}}};
+  assert.ok(card.shadowRoot.innerHTML.match(/<p class="sub">(.*?)<\/p>/s)[1].replaceAll('&quot;','"').length<=256);
+});
+
+test('subtitle picker ignores bubbled changes and stale events, persists clears without rerender', async () => {
+  const {Editor}=setup(),el=new Editor();el.setConfig({...config,subtitle_mode:'entity',subtitle_entity:'sensor.t'});el.hass=groupHass();await flush();
+  const picker={tagName:'HA-ENTITY-PICKER',dataset:{config:'subtitle_entity'},value:'sensor.t'};
+  el.shadowRoot.querySelector=selector=>selector==='ha-entity-picker[data-config="subtitle_entity"]'?picker:null;
+  const html=el.shadowRoot.innerHTML;
+  el.handleChange({type:'change',target:picker,detail:{value:'switch.relay'}});assert.equal(el.config.subtitle_entity,'sensor.t');
+  el.handleChange({type:'value-changed',target:picker,detail:{value:'switch.relay'}});assert.equal(el.events.at(-1).detail.config.subtitle_entity,'switch.relay');assert.equal(el.shadowRoot.innerHTML,html);
+  el.handleChange({type:'value-changed',target:{...picker},detail:{value:'sensor.stale'}});assert.equal(el.config.subtitle_entity,'switch.relay');
+  el.handleChange({type:'value-changed',target:picker,detail:{value:''}});assert.equal(el.events.at(-1).detail.config.subtitle_entity,'');
+  assert.equal(el.config.name,'House');assert.equal(el.config.items[0].fan_entity,'fan.a');
+});
+
 const targetSwitch='switch.uss_p130_f5_relay0';
 test('exact user YAML unknown feedback accepts explicit manual without optimistic blades', async () => {
   const {Card}=setup(), el=new Card(), writes=[];

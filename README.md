@@ -1,4 +1,4 @@
-# UNiNUS Greenhouse Fan 0.3.0
+# UNiNUS Greenhouse Fan 0.3.1
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -23,7 +23,7 @@ Home Assistant integration with a Lovelace card based on the approved global-pol
 
 The compact switch lives **inside the existing global policy strip**, not in the editor or a new row. It controls **every configured device in the selected group**, including devices hidden from this card, offline outputs and manual-only outputs. Only administrators can change it. The switch is disabled while pending and reflects the **authoritative backend snapshot**, never an optimistic selection; click/keyboard activation does not expand the policy disclosure.
 
-- **Manual:** persist a group-wide automation gate, cancel all pending duration state and **maintain current physical output**. No turn-on/turn-off service is called by the mode command. Explicit individual manual on/off remains available for healthy or `unknown` output feedback; individual Resume is disabled/rejected with instructions to switch the group to Auto first.
+- **Manual:** persist a group-wide automation gate, cancel all pending duration state and **maintain current physical output**. No turn-on/turn-off service is called by the mode command. Explicit individual manual on/off remains available for healthy or `unknown` output feedback; individual Resume is not rendered and backend requests are still rejected with instructions to switch the group to Auto first.
 - **Auto:** in one transaction clear **all** individual manual holds, reset pending duration state and resume every configured device. No immediate actuation occurs in the mode handler. The next normal periodic evaluation starts fresh durations; a zero-duration policy can actuate on that next evaluation. Sources/feedback must still be valid.
 - The global gate survives reload, device additions/replacements/source/name edits and explicit per-device manual commands. Historical storage without `control_mode` migrates to `auto`, preserving stable identities, bindings and existing holds. Invalid stored mode flags fail closed. Per-device manual holds while global Auto remain independent until explicit individual Resume or global Auto.
 - All mutation paths retain the flag. Group/device/registry locks serialize mode changes against manual commands, device CRUD and evaluation. Verified persistence failures preserve the previous complete modes and pending timers; indeterminate failures quarantine the group. Unload/stopping checks occur before and after awaited persistence, and disposed UI completions are ignored.
@@ -45,17 +45,42 @@ All 16 measured cases preserve 44×44px minimum control targets, zero horizontal
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.3.0` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.3.1` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
-3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary HA entity picker is offered. If none exists, follow the integration settings link and Add device, then refresh.
-4. Set display names/order, card title, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
+3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
+4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
 5. New choices store opaque `device_id`, independent of name/output, so they follow output edits. A deleted stable reference cannot fall back to a different output. Refresh and scope/disconnect races cannot replace new inventory or show stale manual results.
 
 The policy strip stays above the grid. Automatic layout uses the card's own width: 390/720/1080/1380px show 1/2/3/4 columns. Explicit **2 columns stays exactly two** at card widths 390/500/520/630/720px in both themes; compact stacked heroes/readings and smaller padding/fonts prevent overflow while buttons retain 44px minimum height. One display item occupies one of the two grid cells: no duplicate is fabricated. Animation/readings follow real entity state, not optimistic toggles. Blades/hub are red and rotate only when the available output reports `on`, even with missing/unavailable sensors or manual-only configuration; other output states are neutral gray and paused. Reduced-motion disables animation, not running color.
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.3.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.3.1'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+
+## Display-only subtitle (0.3.1)
+
+The global switch is pinned to the **right** of the existing threshold strip: visible label **自動**, then a conventional switch track. Its outer button is transparent with no border/capsule. Threshold pairs wrap on the left at narrow widths; the toggle stays in that row with a 44px hit target. Global Manual renders **no individual Resume button**. Only individual on/off holds under global Auto show Resume; pending switches keep the previous authoritative mode until success.
+
+The card editor offers **文字 / 實體** subtitle sources, with immediate escaped preview. Dashboard **Save** retains config and **Cancel** makes no backend writes. Old YAML keeps `各區獨立感測 · 同群組共用門檻` until a subtitle is supplied; explicit empty text or an empty entity hides the subtitle.
+
+```yaml
+# Static text; literal text only, no templates
+subtitle_mode: text
+subtitle_text: Greenhouse status
+# subtitle_text: ''  # hide
+```
+
+```yaml
+# One searchable native HA picker, unrestricted entity domains
+subtitle_mode: entity
+subtitle_entity: weather.home   # sensor.*, switch.*, input_text.*, etc. also supported
+subtitle_attribute: temperature # optional; empty selects the entity state
+subtitle_unit: true             # optional, defaults true; state unit only, never attributes
+```
+
+A missing entity/state, `unknown`, `unavailable`, null, non-finite scalar or missing selected attribute renders **—**. A missing attribute never falls back to the state. Numeric 0 and boolean false remain visible. Arrays/objects use safely escaped JSON bounded to 256 characters; failed serialization renders **—**. One entity or attribute only: no templates or text/entity composition. The picker emits config changes immediately on authoritative `value-changed`, including clears, and keeps active search mounted through state refreshes.
+
+Persisted verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
 
 ## Migration and old YAML
 
@@ -91,6 +116,7 @@ python -c "from pathlib import Path; assert Path('www/uninus-greenhouse-fan-card
 git diff --check
 python tests/verify_card_browser.py
 python tests/verify_control_browser.py
+python tests/verify_subtitle_browser.py
 ```
 
 Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.

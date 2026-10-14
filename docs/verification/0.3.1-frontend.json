@@ -1,0 +1,4073 @@
+{
+  "version": "0.3.1",
+  "base_head": "e741798d677e988f48634fd2b7de1a2dd3a0c6ff",
+  "suites": {
+    "offline_python": 50,
+    "real_HA_python": 42,
+    "node": 35,
+    "browser_scripts": 3,
+    "skips": 0
+  },
+  "JS": {
+    "bytes": 36000,
+    "sha256": "39a287dda346aded03b9575031ad5750d0024a65b50f7b302ca901cb65277596",
+    "copies_equal": true
+  },
+  "tdd_red_green": [
+    "mode strip order and authoritative Resume visibility",
+    "subtitle typed text save/reopen/empty/escape",
+    "entity scalar/attribute/unit/structured fallback and authoritative picker clears",
+    "active searchable picker survives refresh",
+    "focused Refresh updates configured inventory",
+    "0.3.1 packaging contract"
+  ],
+  "scope": "repository only; no commit/push/deploy/live HA writes/restart/hardware",
+  "picker_caveat": "native event-contract fixture in real Edge; not live native HA frontend picker",
+  "subtitle": {
+    "picker": "offline native-event-contract fixture; not live HA frontend",
+    "user_flow": "text/entity save/reopen/clear/cancel; active search refresh",
+    "measurements": [
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "dark",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1119.046875,
+        "bottom": 1163.046875,
+        "summaryTop": 1115.046875,
+        "summaryBottom": 1167.046875,
+        "limitsRight": 284,
+        "toggleLeft": 290,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 392,
+        "toggleLeft": 400,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 612,
+        "toggleLeft": 620,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "auto",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "manual",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "on",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "theme": "light",
+        "width": 72,
+        "layout": "2",
+        "mode": "auto",
+        "hold": "auto",
+        "gap": 10,
+        "top": 1127.75,
+        "bottom": 1171.75,
+        "summaryTop": 1123.75,
+        "summaryBottom": 1175.75,
+        "limitsRight": 972,
+        "toggleLeft": 980,
+        "height": 44,
+        "border": "0px",
+        "background": "rgba(0, 0, 0, 0)",
+        "shadow": "none",
+        "label": "自動",
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      }
+    ],
+    "source_cases": [
+      [
+        "dark",
+        390,
+        "sensor.subtitle",
+        "",
+        true,
+        "0 °C"
+      ],
+      [
+        "dark",
+        390,
+        "sensor.subtitle",
+        "",
+        false,
+        "0"
+      ],
+      [
+        "dark",
+        390,
+        "switch.subtitle",
+        "",
+        true,
+        "off"
+      ],
+      [
+        "dark",
+        390,
+        "input_text.subtitle",
+        "",
+        true,
+        "Welcome"
+      ],
+      [
+        "dark",
+        390,
+        "weather.subtitle",
+        "temperature",
+        true,
+        "0"
+      ],
+      [
+        "dark",
+        390,
+        "weather.subtitle",
+        "flag",
+        true,
+        "false"
+      ],
+      [
+        "dark",
+        390,
+        "weather.subtitle",
+        "data",
+        true,
+        "[0,false]"
+      ],
+      [
+        "dark",
+        390,
+        "weather.subtitle",
+        "absent",
+        true,
+        "—"
+      ],
+      [
+        "dark",
+        390,
+        "sensor.missing",
+        "",
+        true,
+        "—"
+      ],
+      [
+        "dark",
+        500,
+        "sensor.subtitle",
+        "",
+        true,
+        "0 °C"
+      ],
+      [
+        "dark",
+        500,
+        "sensor.subtitle",
+        "",
+        false,
+        "0"
+      ],
+      [
+        "dark",
+        500,
+        "switch.subtitle",
+        "",
+        true,
+        "off"
+      ],
+      [
+        "dark",
+        500,
+        "input_text.subtitle",
+        "",
+        true,
+        "Welcome"
+      ],
+      [
+        "dark",
+        500,
+        "weather.subtitle",
+        "temperature",
+        true,
+        "0"
+      ],
+      [
+        "dark",
+        500,
+        "weather.subtitle",
+        "flag",
+        true,
+        "false"
+      ],
+      [
+        "dark",
+        500,
+        "weather.subtitle",
+        "data",
+        true,
+        "[0,false]"
+      ],
+      [
+        "dark",
+        500,
+        "weather.subtitle",
+        "absent",
+        true,
+        "—"
+      ],
+      [
+        "dark",
+        500,
+        "sensor.missing",
+        "",
+        true,
+        "—"
+      ],
+      [
+        "light",
+        390,
+        "sensor.subtitle",
+        "",
+        true,
+        "0 °C"
+      ],
+      [
+        "light",
+        390,
+        "sensor.subtitle",
+        "",
+        false,
+        "0"
+      ],
+      [
+        "light",
+        390,
+        "switch.subtitle",
+        "",
+        true,
+        "off"
+      ],
+      [
+        "light",
+        390,
+        "input_text.subtitle",
+        "",
+        true,
+        "Welcome"
+      ],
+      [
+        "light",
+        390,
+        "weather.subtitle",
+        "temperature",
+        true,
+        "0"
+      ],
+      [
+        "light",
+        390,
+        "weather.subtitle",
+        "flag",
+        true,
+        "false"
+      ],
+      [
+        "light",
+        390,
+        "weather.subtitle",
+        "data",
+        true,
+        "[0,false]"
+      ],
+      [
+        "light",
+        390,
+        "weather.subtitle",
+        "absent",
+        true,
+        "—"
+      ],
+      [
+        "light",
+        390,
+        "sensor.missing",
+        "",
+        true,
+        "—"
+      ],
+      [
+        "light",
+        500,
+        "sensor.subtitle",
+        "",
+        true,
+        "0 °C"
+      ],
+      [
+        "light",
+        500,
+        "sensor.subtitle",
+        "",
+        false,
+        "0"
+      ],
+      [
+        "light",
+        500,
+        "switch.subtitle",
+        "",
+        true,
+        "off"
+      ],
+      [
+        "light",
+        500,
+        "input_text.subtitle",
+        "",
+        true,
+        "Welcome"
+      ],
+      [
+        "light",
+        500,
+        "weather.subtitle",
+        "temperature",
+        true,
+        "0"
+      ],
+      [
+        "light",
+        500,
+        "weather.subtitle",
+        "flag",
+        true,
+        "false"
+      ],
+      [
+        "light",
+        500,
+        "weather.subtitle",
+        "data",
+        true,
+        "[0,false]"
+      ],
+      [
+        "light",
+        500,
+        "weather.subtitle",
+        "absent",
+        true,
+        "—"
+      ],
+      [
+        "light",
+        500,
+        "sensor.missing",
+        "",
+        true,
+        "—"
+      ]
+    ],
+    "errors": []
+  },
+  "control": {
+    "measurements": [
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 390,
+        "before": 886.09375,
+        "after": 784.40625,
+        "reduction": 101.6875,
+        "height": 784.40625,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 500,
+        "before": 919.109375,
+        "after": 825.109375,
+        "reduction": 94.0,
+        "height": 825.109375,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 720,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "2",
+        "width": 1080,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 390,
+        "before": 1481.15625,
+        "after": 1259.46875,
+        "reduction": 221.6875,
+        "height": 1259.46875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 500,
+        "before": 1478.171875,
+        "after": 1275.171875,
+        "reduction": 203.0,
+        "height": 1275.171875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 720,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "dark",
+        "layout": "auto",
+        "width": 1080,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 390,
+        "before": 886.09375,
+        "after": 784.40625,
+        "reduction": 101.6875,
+        "height": 784.40625,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 500,
+        "before": 919.109375,
+        "after": 825.109375,
+        "reduction": 94.0,
+        "height": 825.109375,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 720,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "2",
+        "width": 1080,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          },
+          {
+            "w": 245.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 390,
+        "before": 1481.15625,
+        "after": 1259.46875,
+        "reduction": 221.6875,
+        "height": 1259.46875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          },
+          {
+            "w": 164,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 500,
+        "before": 1478.171875,
+        "after": 1275.171875,
+        "reduction": 203.0,
+        "height": 1275.171875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          },
+          {
+            "w": 219,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 720,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      },
+      {
+        "theme": "light",
+        "layout": "auto",
+        "width": 1080,
+        "before": 848.171875,
+        "after": 737.671875,
+        "reduction": 110.5,
+        "height": 737.671875,
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 72,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          },
+          {
+            "w": 157.65625,
+            "h": 44
+          },
+          {
+            "w": 157.671875,
+            "h": 44
+          }
+        ],
+        "textClipped": 0
+      }
+    ],
+    "colors": [
+      {
+        "theme": "dark",
+        "t": 29,
+        "h": 93.4,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "t": 29.001,
+        "h": 93.4,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": true,
+            "color": "rgb(255, 173, 165)",
+            "underline": "underline"
+          },
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "t": 29,
+        "h": 93.401,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          },
+          {
+            "high": true,
+            "color": "rgb(255, 173, 165)",
+            "underline": "underline"
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "t": 30,
+        "h": 94,
+        "mode": "on",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "t": 30,
+        "h": 94,
+        "mode": "auto",
+        "global": "manual",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(238, 243, 242)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "dark",
+        "t": null,
+        "h": "unknown",
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(255, 173, 165)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(255, 173, 165)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": 29,
+        "h": 93.4,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": 29.001,
+        "h": 93.4,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": true,
+            "color": "rgb(168, 50, 32)",
+            "underline": "underline"
+          },
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": 29,
+        "h": 93.401,
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          },
+          {
+            "high": true,
+            "color": "rgb(168, 50, 32)",
+            "underline": "underline"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": 30,
+        "h": 94,
+        "mode": "on",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": 30,
+        "h": 94,
+        "mode": "auto",
+        "global": "manual",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(33, 49, 46)",
+            "underline": "none"
+          }
+        ]
+      },
+      {
+        "theme": "light",
+        "t": null,
+        "h": "unknown",
+        "mode": "auto",
+        "global": "auto",
+        "result": [
+          {
+            "high": false,
+            "color": "rgb(168, 50, 32)",
+            "underline": "none"
+          },
+          {
+            "high": false,
+            "color": "rgb(168, 50, 32)",
+            "underline": "none"
+          }
+        ]
+      }
+    ],
+    "toggle": "click and keyboard space passed",
+    "errors": []
+  },
+  "runtime": {
+    "visual_checks": [
+      {
+        "theme": "dark",
+        "output": "off",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": true,
+        "reason": "—"
+      },
+      {
+        "theme": "dark",
+        "output": "on",
+        "sensors": "healthy",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "—"
+      },
+      {
+        "theme": "dark",
+        "output": "unknown",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": true,
+        "reason": "輸出 switch.uss_p130_f5_relay0 狀態未知，可明確手動下達開／關指令；自動暫停直到收到有效回報"
+      },
+      {
+        "theme": "dark",
+        "output": "unavailable",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": false,
+        "reason": "輸出 switch.uss_p130_f5_relay0 回報狀態：unavailable；請檢查來源整合連線與實體狀態 · 設定 → 裝置與服務"
+      },
+      {
+        "theme": "dark",
+        "output": "missing",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": false,
+        "reason": "輸出實體不存在：switch.uss_p130_f5_relay0；請檢查實體是否停用、移除或已改名，並在整合設定修正 · 設定 → 裝置與服務"
+      },
+      {
+        "theme": "dark",
+        "output": "on",
+        "sensors": "absent",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "未綁定感測來源 · 僅手動控制；恢復自動只解除保持，自動未啟用"
+      },
+      {
+        "theme": "dark",
+        "output": "on",
+        "sensors": "unavailable",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "感測讀值不可用 · 仍可手動控制"
+      },
+      {
+        "theme": "dark",
+        "output": "on",
+        "sensors": "missing",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "感測讀值不可用 · 仍可手動控制"
+      },
+      {
+        "theme": "light",
+        "output": "off",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": true,
+        "reason": "—"
+      },
+      {
+        "theme": "light",
+        "output": "on",
+        "sensors": "healthy",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "—"
+      },
+      {
+        "theme": "light",
+        "output": "unknown",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": true,
+        "reason": "輸出 switch.uss_p130_f5_relay0 狀態未知，可明確手動下達開／關指令；自動暫停直到收到有效回報"
+      },
+      {
+        "theme": "light",
+        "output": "unavailable",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": false,
+        "reason": "輸出 switch.uss_p130_f5_relay0 回報狀態：unavailable；請檢查來源整合連線與實體狀態 · 設定 → 裝置與服務"
+      },
+      {
+        "theme": "light",
+        "output": "missing",
+        "sensors": "healthy",
+        "fill": "rgb(138, 148, 153)",
+        "animation": "paused",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(203, 211, 215), rgb(102, 112, 119) 80%)",
+        "hubBorder": "rgb(171, 181, 186)",
+        "selector": false,
+        "enabled": false,
+        "reason": "輸出實體不存在：switch.uss_p130_f5_relay0；請檢查實體是否停用、移除或已改名，並在整合設定修正 · 設定 → 裝置與服務"
+      },
+      {
+        "theme": "light",
+        "output": "on",
+        "sensors": "absent",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "未綁定感測來源 · 僅手動控制；恢復自動只解除保持，自動未啟用"
+      },
+      {
+        "theme": "light",
+        "output": "on",
+        "sensors": "unavailable",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "感測讀值不可用 · 仍可手動控制"
+      },
+      {
+        "theme": "light",
+        "output": "on",
+        "sensors": "missing",
+        "fill": "rgb(220, 91, 86)",
+        "animation": "running",
+        "name": "spin",
+        "hub": "radial-gradient(circle at 30% 25%, rgb(255, 194, 174), rgb(170, 57, 61) 80%)",
+        "hubBorder": "rgb(241, 155, 139)",
+        "selector": false,
+        "enabled": true,
+        "reason": "感測讀值不可用 · 仍可手動控制"
+      }
+    ],
+    "fixed_geometry": [
+      {
+        "width": 390,
+        "theme": "dark",
+        "row": 2,
+        "columns": "174px 174px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 500,
+        "theme": "dark",
+        "row": 2,
+        "columns": "229px 229px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 211,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 520,
+        "theme": "dark",
+        "row": 2,
+        "columns": "239px 239px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 221,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 630,
+        "theme": "dark",
+        "row": 2,
+        "columns": "294px 294px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 276,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 720,
+        "theme": "dark",
+        "row": 2,
+        "columns": "339px 339px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 317,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 390,
+        "theme": "light",
+        "row": 2,
+        "columns": "174px 174px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 156,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          },
+          {
+            "w": 76,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 500,
+        "theme": "light",
+        "row": 2,
+        "columns": "229px 229px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 211,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          },
+          {
+            "w": 103.5,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 520,
+        "theme": "light",
+        "row": 2,
+        "columns": "239px 239px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 221,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          },
+          {
+            "w": 108.5,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 630,
+        "theme": "light",
+        "row": 2,
+        "columns": "294px 294px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 276,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          },
+          {
+            "w": 136,
+            "h": 44
+          }
+        ]
+      },
+      {
+        "width": 720,
+        "theme": "light",
+        "row": 2,
+        "columns": "339px 339px",
+        "minWidths": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "overflow": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "buttons": [
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 317,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          },
+          {
+            "w": 155.5,
+            "h": 44
+          }
+        ]
+      }
+    ],
+    "manual_matrix": [
+      [
+        "dark",
+        "on",
+        "absent"
+      ],
+      [
+        "dark",
+        "on",
+        "healthy"
+      ],
+      [
+        "dark",
+        "on",
+        "unavailable"
+      ],
+      [
+        "dark",
+        "off",
+        "absent"
+      ],
+      [
+        "dark",
+        "off",
+        "healthy"
+      ],
+      [
+        "dark",
+        "off",
+        "unavailable"
+      ],
+      [
+        "dark",
+        "unknown",
+        "absent"
+      ],
+      [
+        "dark",
+        "unknown",
+        "healthy"
+      ],
+      [
+        "dark",
+        "unknown",
+        "unavailable"
+      ],
+      [
+        "light",
+        "on",
+        "absent"
+      ],
+      [
+        "light",
+        "on",
+        "healthy"
+      ],
+      [
+        "light",
+        "on",
+        "unavailable"
+      ],
+      [
+        "light",
+        "off",
+        "absent"
+      ],
+      [
+        "light",
+        "off",
+        "healthy"
+      ],
+      [
+        "light",
+        "off",
+        "unavailable"
+      ],
+      [
+        "light",
+        "unknown",
+        "absent"
+      ],
+      [
+        "light",
+        "unknown",
+        "healthy"
+      ],
+      [
+        "light",
+        "unknown",
+        "unavailable"
+      ]
+    ],
+    "errors": []
+  }
+}

@@ -35,7 +35,7 @@ with sync_playwright() as p:
     page.evaluate('()=>completeToggle()')
     page.wait_for_function('!card.operation')
     assert toggle.get_attribute('aria-checked')=='false'
-    assert locator.locator('button.resume:disabled').count()==4
+    assert locator.locator('button.resume').count()==0
     assert locator.locator('button[data-mode="on"]:enabled').count()==4
     toggle.focus();page.keyboard.press('Space')
     assert toggle.get_attribute('aria-checked')=='false'
