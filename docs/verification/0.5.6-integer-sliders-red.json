@@ -1,0 +1,8 @@
+{
+  "baseline_head": "cb99ba1bf7ce18fac3a8ace9879e974766db4986",
+  "baseline_version": "0.5.5",
+  "source_sha256": "33c81065de3e882b8c11aca0cb74b7bfaa645a1a35f8d608ce9fedf004bc2ee8",
+  "command": "legacy Python tests/verify_integer_sliders_browser.py",
+  "exit_code": 1,
+  "output": "Traceback (most recent call last):\n  File \"C:\\Users\\ivanl\\.hermes\\cache\\scratch\\greenhouse-fan-fix\\tests\\verify_integer_sliders_browser.py\", line 49, in <module>\n    assert slider(key).get_attribute('step') == '1', (key, 'expected step=1', slider(key).get_attribute('step'))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: ('temperature_on', 'expected step=1', '0.1')\n"
+}

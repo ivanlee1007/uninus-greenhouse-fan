@@ -50,7 +50,7 @@ jobs:
       - name: Python controller, registry and HA-adapter fakes
         run: python -m unittest discover -s tests -p 'test_*.py' -v
       - name: Lovelace contract tests
-        run: node --test tests/test_card.mjs
+        run: node tests/test_card.mjs
       - name: Syntax and packaged-card equality
         run: |
           python -m compileall -q custom_components/uninus_greenhouse_fan
@@ -72,3 +72,4 @@ jobs:
           python tests/verify_details_browser.py
           python tests/verify_readings_browser.py
           python tests/verify_icons_browser.py
+          python tests/verify_integer_sliders_browser.py

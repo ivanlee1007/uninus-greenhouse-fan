@@ -343,8 +343,8 @@ with sync_playwright() as p:
             assert single['width']<single['grid']*.55 and single['overflow']<=1,single
             manual_matrix.append([theme,output,sensors])
     page.evaluate('()=>manualCard.remove()')
-    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card').buildVersion")=='0.5.5'
-    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card-editor').buildVersion")=='0.5.5'
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card').buildVersion")=='0.5.6'
+    assert page.evaluate("()=>customElements.get('uninus-greenhouse-fan-card-editor').buildVersion")=='0.5.6'
     (OUT/'runtime-state-matrix.json').write_text(json.dumps({'visual_checks':visual_checks,'fixed_geometry':fixed_geometry,'manual_matrix':manual_matrix,'errors':errors},ensure_ascii=False,indent=2),encoding='utf-8')
     assert not errors,errors
     browser.close()

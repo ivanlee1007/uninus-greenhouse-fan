@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.5.5 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.5.6 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -77,7 +77,7 @@
   };
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.5.5'}
+    static get buildVersion(){return '0.5.6'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
@@ -162,7 +162,7 @@
     editThreshold(key,value){
       if(!thresholdKeys.includes(key)||!this.canEditThresholds())return;
       if(!this.thresholdDraft)this.thresholdDraft={id:this.resolvedId,revision:this.snapshot.policy_revision,values:thresholdValues(this.snapshot.policy)};
-      this.thresholdDraft.values[key]=value;this.policyError='';this.policyNotice='';this.updateThresholdControls();
+      this.thresholdDraft.values[key]=Number.isFinite(value)?Math.round(value):value;this.policyError='';this.policyNotice='';this.updateThresholdControls();
     }
     cancelThresholds(){
       if(this.operation)return;
@@ -188,20 +188,21 @@
       const p=this.thresholdDraft?.values||this.snapshot?.policy||{},valid=!thresholdValidation(p);
       const metrics=[['temperature','溫度','°C',0,50],['humidity','濕度','%',0,100]];
       return `<section class="threshold-demo variant-a"><div class="threshold-grid">${metrics.map(([k,name,unit,min,max])=>{
-        // Extend the demo range for valid native policies; never clamp them.
-        if(k==='temperature' && valid){min=Math.min(min,p.temperature_off);max=Math.max(max,p.temperature_on)}
-        return `<section class="threshold-group"><h3>${name}控制門檻</h3>${['on','off'].map(side=>{const key=k+'_'+side;return `<div class="slider-row"><label for="${key}">${side==='on'?'啟動上限':'停止下限'}</label><input id="${key}" aria-label="${name}${side==='on'?'啟動上限':'停止下限'}" type="range" min="${min}" max="${max}" step="0.1" value="${Number.isFinite(p[key])?p[key]:min}" data-threshold="${key}" ${this.canEditThresholds() && valid?'':'disabled'}><output for="${key}">${Number.isFinite(p[key])?p[key].toFixed(1):'—'} ${unit}</output></div>`}).join('')}<p class="help">${name}：超過上限可啟動；降至下限才允許停止。<span data-range-help="${k}"></span></p></section>`}).join('')}</div><p class="validation" hidden></p><div class="threshold-actions"><span class="notice-text" role="status"></span><button data-cancel disabled>取消修改</button><button class="save" data-save disabled>儲存門檻</button></div><p class="help" data-duration-help>啟動：溫度或濕度超過上限，持續 ${escape(this.snapshot?.policy?.duration_seconds ?? '—')} 秒。停止：兩者皆降至下限，持續相同秒數。</p></section>`;
+        // Whole-number tick anchors; retain untouched saved fractional values.
+        const saved=this.snapshot?.policy;
+        if(k==='temperature' && !thresholdValidation(saved)){min=Math.floor(Math.min(min,saved.temperature_off));max=Math.ceil(Math.max(max,saved.temperature_on))}
+        return `<section class="threshold-group"><h3>${name}控制門檻</h3>${['on','off'].map(side=>{const key=k+'_'+side;return `<div class="slider-row"><label for="${key}">${side==='on'?'啟動上限':'停止下限'}</label><input id="${key}" aria-label="${name}${side==='on'?'啟動上限':'停止下限'}" type="range" min="${min}" max="${max}" step="1" value="${Number.isFinite(p[key])?p[key]:min}" data-threshold="${key}" ${this.canEditThresholds() && valid?'':'disabled'}><output for="${key}">${Number.isFinite(p[key])?String(p[key]):'—'} ${unit}</output></div>`}).join('')}<p class="help">${name}：超過上限可啟動；降至下限才允許停止。<span data-range-help="${k}"></span></p></section>`}).join('')}</div><p class="validation" hidden></p><div class="threshold-actions"><span class="notice-text" role="status"></span><button data-cancel disabled>取消修改</button><button class="save" data-save disabled>儲存門檻</button></div><p class="help" data-duration-help>啟動：溫度或濕度超過上限，持續 ${escape(this.snapshot?.policy?.duration_seconds ?? '—')} 秒。停止：兩者皆降至下限，持續相同秒數。</p></section>`;
     }
     updateThresholdControls(){
       const root=this.shadowRoot,p=this.thresholdDraft?.values||this.snapshot?.policy||{};
       const validation=!this.snapshot?.policy?'':this.thresholdStale()?'門檻已由其他介面修改；請取消草稿並重新讀取後調整。':this.policyError || thresholdValidation(p);
       for(const key of thresholdKeys){const input=root.querySelector(`[data-threshold="${key}"]`);if(!input)continue;
         const kind=key.startsWith('temperature')?'temperature':'humidity',nativeValid=!thresholdValidation(this.snapshot?.policy);
-        input.min=kind==='temperature' && nativeValid?Math.min(0,this.snapshot.policy.temperature_off):0;
-        input.max=kind==='temperature' && nativeValid?Math.max(50,this.snapshot.policy.temperature_on):100;
+        input.min=kind==='temperature' && nativeValid?Math.floor(Math.min(0,this.snapshot.policy.temperature_off)):0;
+        input.max=kind==='temperature' && nativeValid?Math.ceil(Math.max(50,this.snapshot.policy.temperature_on)):100;
         if(Number.isFinite(p[key]) && Number(input.value)!==p[key])input.value=p[key];
         const disabled=!this.canEditThresholds() || !nativeValid;if(input.disabled!==disabled)input.disabled=disabled;
-        input.nextElementSibling.textContent=Number.isFinite(p[key])?p[key].toFixed(1)+(kind==='temperature'?' °C':' %'):'—';
+        input.nextElementSibling.textContent=Number.isFinite(p[key])?String(p[key])+(kind==='temperature'?' °C':' %'):'—';
       }
       const range=root.querySelector('[data-range-help="temperature"]');
       if(range){const saved=this.snapshot?.policy,valid=!thresholdValidation(saved);range.textContent=valid && (saved.temperature_off<0 || saved.temperature_on>50)?` 既有門檻範圍：${String(Math.min(0,saved.temperature_off)).replace('-','−')}～${Math.max(50,saved.temperature_on)} °C。`:''}

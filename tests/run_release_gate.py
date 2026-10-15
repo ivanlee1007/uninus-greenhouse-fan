@@ -30,6 +30,7 @@ commands={
     'browser_details':[BROWSER,'tests/verify_details_browser.py'],
     'browser_readings':[BROWSER,'tests/verify_readings_browser.py'],
     'browser_icons':[BROWSER,'tests/verify_icons_browser.py'],
+    'browser_integer_sliders':[BROWSER,'tests/verify_integer_sliders_browser.py'],
     'compile':[sys.executable,'-m','compileall','-q','custom_components/uninus_greenhouse_fan'],
     'node_source_syntax':[NODE,'--check','www/uninus-greenhouse-fan-card.js'],
     'node_bundle_syntax':[NODE,'--check','custom_components/uninus_greenhouse_fan/card.js'],
@@ -39,9 +40,9 @@ results={}
 for name,cmd in commands.items():
     result=subprocess.run(cmd,cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240)
     output=result.stdout+result.stderr
-    (OUT/f'0.5.5-{name}.log').write_text(output,encoding='utf-8')
+    (OUT/f'0.5.6-{name}.log').write_text(output,encoding='utf-8')
     match=re.search(r'Ran (\d+) tests|tests (\d+)',output)
-    results[name]={'exit_code':result.returncode,'tests':int(next(x for x in match.groups() if x is not None)) if match else None,'log':f'tests/evidence/0.5.5-{name}.log'}
+    results[name]={'exit_code':result.returncode,'tests':int(next(x for x in match.groups() if x is not None)) if match else None,'log':f'tests/evidence/0.5.6-{name}.log'}
     if name == 'node':
         declared = len(re.findall(r'^test\(', (ROOT/'tests/test_card.mjs').read_text(encoding='utf-8'), re.MULTILINE))
         results[name]['declared_tests'] = declared
@@ -52,9 +53,9 @@ for name,cmd in commands.items():
     if name in expected and results[name]['tests']!=expected[name]:
         results[name]['exit_code']=1
         results[name]['error']='Actual test count does not match required release cases'
-    if name=='node' and (declared<41 or not re.search(r'# pass '+str(declared)+r'\b',output) or not re.search(r'# skipped 0\b',output)):
+    if name=='node' and (declared<42 or not re.search(r'# pass '+str(declared)+r'\b',output) or not re.search(r'# skipped 0\b',output)):
         results[name]['exit_code']=1
-        results[name]['error']='Node must execute at least 41 cases with no skips'
+        results[name]['error']='Node must execute at least 42 cases with no skips'
     if name in expected and re.search(r'\bskipped\b',output,re.IGNORECASE):
         results[name]['exit_code']=1
         results[name]['error']='Release suites may not skip cases'
@@ -69,13 +70,15 @@ for file in files: json.loads(file.read_text(encoding='utf-8'))
 source=(ROOT/'www/uninus-greenhouse-fan-card.js').read_bytes()
 bundle=(ROOT/'custom_components/uninus_greenhouse_fan/card.js').read_bytes()
 assert source==bundle
-assert json.loads((ROOT/'custom_components/uninus_greenhouse_fan/manifest.json').read_text())['version']=='0.5.5'
-assert b"buildVersion(){return '0.5.5'}" in source
+assert json.loads((ROOT/'custom_components/uninus_greenhouse_fan/manifest.json').read_text())['version']=='0.5.6'
+assert b"buildVersion(){return '0.5.6'}" in source
+assert 'CARD_VERSION = "0.5.6"' in (ROOT/'custom_components/uninus_greenhouse_fan/frontend.py').read_text(encoding='utf-8')
+assert len([name for name in results if name.startswith('browser_')]) == 9
 tracked=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
-hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(tracked)) if name and name!='docs/verification/0.5.5-frontend.json'}
+hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(tracked)) if name and name!='docs/verification/0.5.6-frontend.json'}
 fingerprint=hashlib.sha256(json.dumps(hashes,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 threshold_file=OUT/'threshold-layout.json'
-report={'version':'0.5.5','acceptance_complete':all(x['exit_code']==0 for x in results.values()),'known_limitations':['HA 2025.12 native input_number.set_value coerces booleans to floats before entity dispatch; strict native-service boolean rejection cannot be delivered without changing its global schema.','Integration-managed input_number entities are not editable native helper storage collection records; use Entities/Options for IDs/names and native value controls.','Isolated native-HA backend and browser fixtures only; native live Helpers/Entities UI was not exercised.'],'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'runtimes':runtimes,'gates':results,'json_files_validated':len(files),'shipped_copies_equal':True,'js_sha256':hashlib.sha256(source).hexdigest(),'js_bytes':len(source),'approved_a_fixture_sha256':hashlib.sha256((ROOT/'tests/fixtures/approved-threshold-a.html').read_bytes()).hexdigest(),'working_tree_content_fingerprint':fingerprint,'fingerprint_definition':'SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report','file_hashes':hashes,'scope':'Repository-only isolated actual HA/Store/ServiceRegistry and browser fixtures; no live HA, commit, push, release, deployment, restart or hardware actuation','threshold_browser':json.loads(threshold_file.read_text(encoding='utf-8')) if threshold_file.exists() else None,'passed':all(x['exit_code']==0 for x in results.values())}
+report={'version':'0.5.6','acceptance_complete':all(x['exit_code']==0 for x in results.values()),'known_limitations':['HA 2025.12 native input_number.set_value coerces booleans to floats before entity dispatch; strict native-service boolean rejection cannot be delivered without changing its global schema.','Integration-managed input_number entities are not editable native helper storage collection records; use Entities/Options for IDs/names and native value controls.','Isolated native-HA backend and browser fixtures only; native live Helpers/Entities UI was not exercised.'],'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'runtimes':runtimes,'gates':results,'json_files_validated':len(files),'shipped_copies_equal':True,'js_sha256':hashlib.sha256(source).hexdigest(),'js_bytes':len(source),'approved_a_fixture_sha256':hashlib.sha256((ROOT/'tests/fixtures/approved-threshold-a.html').read_bytes()).hexdigest(),'working_tree_content_fingerprint':fingerprint,'fingerprint_definition':'SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report','file_hashes':hashes,'scope':'Repository-only isolated actual HA/Store/ServiceRegistry and browser fixtures; no live HA, commit, push, release, deployment, restart or hardware actuation','threshold_browser':json.loads(threshold_file.read_text(encoding='utf-8')) if threshold_file.exists() else None,'passed':all(x['exit_code']==0 for x in results.values())}
 report.update({
     'generated_at_utc':datetime.now(timezone.utc).isoformat(),
     'node_version':subprocess.check_output([NODE,'--version'],text=True).strip(),
@@ -85,8 +88,14 @@ report.update({
     'readings_baseline_red':json.loads((ROOT/'docs/verification/0.5.3-readings-red.json').read_text(encoding='utf-8')),
     'readings_browser':json.loads((OUT/'readings-browser.json').read_text(encoding='utf-8')),
     'button_icons_browser':json.loads((OUT/'button-icons.json').read_text(encoding='utf-8')),
+    'integer_sliders_baseline_red':json.loads((ROOT/'docs/verification/0.5.6-integer-sliders-red.json').read_text(encoding='utf-8')),
+    'integer_sliders_browser':json.loads((OUT/'integer-sliders-browser.json').read_text(encoding='utf-8')),
+    'browser_gate_count':len([name for name in results if name.startswith('browser_')]),
+    'approved_button_icons_fixture_sha256':hashlib.sha256((ROOT/'tests/fixtures/approved-button-icons-a.html').read_bytes()).hexdigest(),
 })
+assert report['integer_sliders_browser']['source_sha256'] == report['js_sha256']
+report['known_limitations'].append('With step=1 the native range thumb/value snaps to a whole tick. The adjacent output, saved policy and untouched draft fields retain the exact legacy fraction until that particular control is edited; rendering, polls and Cancel never round or write it. Native input_number/Options/service precision and sensor reading formatting are unchanged.')
 report['known_limitations'].append('Editor checkbox clicks and Save/reopen use the actual custom editor in a synthetic Dashboard Save host, not the live HA dashboard storage dialog. Hosted CI is configured, not executed locally.')
-(ROOT/'docs/verification/0.5.5-frontend.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+(ROOT/'docs/verification/0.5.6-frontend.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(json.dumps({k:v for k,v in report.items() if k not in ('file_hashes','threshold_browser','gates')},ensure_ascii=False))
 sys.exit(0 if report['passed'] else 1)

@@ -1,4 +1,6 @@
-# UNiNUS Greenhouse Fan 0.5.5
+# UNiNUS Greenhouse Fan 0.5.6
+
+The four **expanded global-card threshold sliders** now adjust in whole **1 °C / 1 %** steps. Newly edited values display as integers without `.0`. Native `input_number`, Shared policy Options, service precision and sensor-reading formatting are unchanged.
 
 The approved button-icon demo A is now shipped: **▶ 開啟** and **■ 關閉**, using 16px SVG icons before the text. Icons inherit the existing button color; manual-hold behavior and authoritative output feedback are unchanged.
 
@@ -76,12 +78,15 @@ All 16 measured cases preserve 44×44px minimum control targets, zero horizontal
 Expand the existing global strip to edit temperature and humidity in **two group boxes** (side-by-side wide, stacked narrow). Each group puts Start above Stop. The card editor and Dashboard Save still change only display configuration.
 
 - Sliders create a local draft only. **取消修改** discards it and reloads the saved policy; **儲存門檻** saves all four thresholds together. Only an administrator with a loaded selected group can save. Saved summary, warning colors and automatic control keep the saved policy until verified success. Pending saves block another Save, Cancel and other card writes.
-- Default display ranges are temperature **0–50 °C**, humidity **0–100 %**, step **0.1**. Valid historical temperature endpoints outside the demo range are shown unchanged with an explicitly expanded range, not silently clamped. Backend limits remain **−20–80 °C / 0–100 %**, with Stop ≤ Start; invalid/non-finite/boolean/string values are rejected. Invalid existing policy displays an error and disables editing rather than overwriting it.
+- Card-only default display ranges are temperature **0–50 °C**, humidity **0–100 %**, step **1**. Only the changed finite numeric draft field is rounded to an integer. Untouched legacy fractions remain exact in the saved policy, adjacent output and all-four Save payload; opening, polling, dragging and Cancel do not write them. Native range thumbs/DOM values necessarily snap to the nearest whole tick at step 1; the output still shows the true legacy fraction (for example **37.7 °C**) until that particular control is edited. There is no silent migration or display-only rounding of saved fractions.
+- Valid historical temperatures outside the default range expand to whole-number tick anchors using floor/ceil: **−10.5 / 70.5** remains unchanged, with range **−11–71** in initial markup and live controls. Backend limits remain **−20–80 °C / 0–100 %**, with Stop ≤ Start; invalid/non-finite/boolean/string values are rejected. Invalid existing policy displays an error and disables editing rather than overwriting it. Native helpers retain step **0.1**, described separately below.
 - The existing verified registry Store is the **only durable policy authority**, including native **Shared policy** Options and duration. Initial migration uses historical entry options over entry data over defaults, preserving identities, sources, holds and global mode. Once saved in the registry, stale entry options cannot restore an old policy. Native Options may edit duration; card Save preserves it.
 - A separate internal policy revision changes only when policy changes. Ordinary polls never rebase a dirty draft. A conflict or save failure retains the draft and old effective policy/timers; use Cancel/reload (or cancel/reopen native Options) to review current values. There are no revision inputs. Successful changed policies reset duration state while retaining manual holds and global mode; **the save handler never actuates equipment**. Normal periodic evaluation may act later, including the next tick for zero duration.
 - Expanded state, the exact focused slider node and a pointer drag survive live `hass` and snapshot updates. Old scope/detached operation results are ignored. Quarantine disables control; follow [verified-store recovery](docs/PERSISTENCE.md), not repeated Save.
 
 Local browser gate compares the frozen approved A fixture with production at 390/500/720/1080px in both themes and auto/fixed-two layouts. It checks group/slider and whole-card composition, overflow, real pointer/keyboard editing, Save/Cancel, validation, permissions, conflicts, failures and lifecycle races. Production deliberately replaces demo-only saved messages with verified-backend/pending/conflict guidance and dynamic native duration; demo host controls are not shipped.
+
+The ninth browser gate, `tests/verify_integer_sliders_browser.py`, checks all four real pointer/keyboard controls, integer draft/output values, whole tick anchors, exact untouched legacy fractions, Save payload/CAS/duration, unverified-save rejection, and zero writes on drag/Cancel. Existing geometry, conflict, permission, refresh and lifecycle gates and both frozen approved fixtures remain unchanged. `docs/verification/0.5.6-integer-sliders-red.json` records the real 0.5.5 baseline failure (`step=0.1`, expected `1`); `docs/verification/0.5.6-frontend.json` records the actual complete gate, runtime/source hashes and working-tree fingerprint. Historical refresh/readings RED references remain `0.5.2-refresh-red.json` and `0.5.3-readings-red.json`. These are isolated fixtures, not live HA or hosted-CI verification.
 
 ## Native threshold entities (0.5.1)
 
@@ -122,7 +127,7 @@ or automations under the caller's ordinary HA entity-control permissions.
 The card's existing all-four Save and native Shared policy form remain
 admin-only/unchanged and synchronize all four entity values.
 
-Each slider uses step **0.1**, units **°C** or **%**, temperature bounds normally
+Each native entity slider (not the card's global sliders) uses step **0.1**, units **°C** or **%**, temperature bounds normally
 **0–50**, humidity **0–100**. Saved legacy temperatures outside 0–50 are retained
 by extending the corresponding helper's bounds (the canonical policy still
 accepts −20–80). Initial values always come from the saved authoritative policy,
@@ -187,7 +192,7 @@ policy Save to atomically change four thresholds.
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.5` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.6` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -197,7 +202,7 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.3'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.6'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Display-only subtitle (introduced in 0.3.1)
 
@@ -250,7 +255,7 @@ Existing workflow commands:
 
 ```sh
 python -m unittest discover -s tests -p 'test_*.py' -v
-node --test tests/test_card.mjs
+node tests/test_card.mjs
 python -m compileall -q custom_components/uninus_greenhouse_fan
 node --check www/uninus-greenhouse-fan-card.js
 node --check custom_components/uninus_greenhouse_fan/card.js
@@ -262,6 +267,10 @@ python tests/verify_subtitle_browser.py
 python tests/verify_threshold_browser.py
 python tests/verify_refresh_browser.py
 python tests/verify_details_browser.py
+python tests/verify_readings_browser.py
+python tests/verify_icons_browser.py
+python tests/verify_integer_sliders_browser.py
+python tests/run_release_gate.py  # set HA_TEST_PYTHON, HA_MODERN_TEST_PYTHON, BROWSER_TEST_PYTHON
 ```
 
 Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.
