@@ -35,6 +35,27 @@ test('global device details option is a typed display-only boolean with legacy d
     const reopened=new Editor();reopened.setConfig(saved);assert.equal(reopened.config.show_device_details,checked);
   }
 });
+test('right readings opt-in accepts literal true only and editor round trips typed booleans', async () => {
+  const {Card,Editor}=setup();
+  assert.equal(Card.getStubConfig().lock_readings_right,false);
+  const calls=[];
+  for(const value of [undefined,null,false,true,0,1,'true','false','',[],{},new Boolean(true)]) {
+    const card=new Card();card.setConfig({...config,lock_readings_right:value});
+    assert.equal(card.config.lock_readings_right,value===true);
+    assert.equal(card.shadowRoot.innerHTML.includes('card layout-auto readings-right'),value===true);
+    const editor=new Editor();editor.setConfig({...config,lock_readings_right:value});
+    assert.equal(editor.config.lock_readings_right,value===true);
+  }
+  const editor=new Editor();editor.setConfig(config);editor.hass=groupHass(groups,msg=>{calls.push(msg);return snapshot()});await flush();
+  for(const checked of [false,true,false,'true',1,undefined]) {
+    editor.handleChange({type:'change',target:{dataset:{config:'lock_readings_right'},checked,value:'on'}});
+    const saved=editor.events.at(-1).detail.config;
+    assert.equal(typeof saved.lock_readings_right,'boolean');assert.equal(saved.lock_readings_right,checked===true);
+    const reopened=new Editor();reopened.setConfig(saved);assert.equal(reopened.config.lock_readings_right,checked===true);
+    assert.equal(saved.show_device_details,true);
+  }
+  assert.equal(calls.filter(x=>!x.type.endsWith('/get')&&!x.type.endsWith('/groups')).length,0);
+});
 const states = {
   'fan.a':{state:'on',attributes:{friendly_name:'Fan A'}},
   'fan.b':{state:'off',attributes:{}},
@@ -173,8 +194,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.5.2 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.2');assert.equal(Editor.buildVersion,'0.5.2');
+test('loaded custom elements expose readable 0.5.3 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.3');assert.equal(Editor.buildVersion,'0.5.3');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();
