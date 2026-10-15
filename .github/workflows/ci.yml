@@ -71,3 +71,4 @@ jobs:
           python tests/verify_refresh_browser.py
           python tests/verify_details_browser.py
           python tests/verify_readings_browser.py
+          python tests/verify_icons_browser.py

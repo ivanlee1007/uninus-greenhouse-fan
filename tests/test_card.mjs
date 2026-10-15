@@ -21,8 +21,11 @@ test('fan action buttons use concise labels while manual mode labels stay explic
   await new Promise(resolve=>setTimeout(resolve,0));
   const {Card}=setup(),el=new Card();el.setConfig(config);el.hass=groupHass();await flush();
   let html=el.renderFan(el.config.items[0]);
-  assert.match(html,/data-mode="on"[^>]*>開啟<\/button>/);
-  assert.match(html,/data-mode="off"[^>]*>關閉<\/button>/);
+  assert.match(html,/data-mode="on"[^>]*><svg class="action-icon"[^>]*aria-hidden="true"/);
+  assert.match(html,/<path d="m8 5 11 7-11 7Z"\/>/);
+  assert.match(html,/<rect x="6" y="6" width="12" height="12" rx="1"\/>/);
+  assert.match(html,/<span>開啟<\/span><\/button>/);
+  assert.match(html,/<span>關閉<\/span><\/button>/);
   assert.doesNotMatch(html,/>手動(?:開啟|關閉)<\/button>/);
   el.snapshot.runtime['fan.a'].mode='on';
   html=el.renderFan(el.config.items[0]);
@@ -206,8 +209,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.5.4 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.4');assert.equal(Editor.buildVersion,'0.5.4');
+test('loaded custom elements expose readable 0.5.5 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.5');assert.equal(Editor.buildVersion,'0.5.5');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

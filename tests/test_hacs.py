@@ -14,13 +14,13 @@ ROOT = Path(__file__).resolve().parents[1]
 class HacsPackagingTest(unittest.TestCase):
     def test_manifest_and_frontend_version_contract(self):
         metadata = json.loads((ROOT / 'custom_components/uninus_greenhouse_fan/manifest.json').read_text(encoding='utf-8'))
-        self.assertEqual(metadata['version'], '0.5.4')
+        self.assertEqual(metadata['version'], '0.5.5')
         frontend = (ROOT / 'custom_components/uninus_greenhouse_fan/frontend.py').read_text(encoding='utf-8')
-        self.assertIn('CARD_VERSION = "0.5.4"', frontend)
+        self.assertIn('CARD_VERSION = "0.5.5"', frontend)
         shipped = (ROOT / 'custom_components/uninus_greenhouse_fan/card.js').read_bytes()
         self.assertEqual(shipped, (ROOT / 'www/uninus-greenhouse-fan-card.js').read_bytes())
-        self.assertIn(b'UNiNUS Greenhouse Fan 0.5.4', shipped)
-        self.assertIn('card.js?v=0.5.4', (ROOT / 'README.md').read_text(encoding='utf-8'))
+        self.assertIn(b'UNiNUS Greenhouse Fan 0.5.5', shipped)
+        self.assertIn('card.js?v=0.5.5', (ROOT / 'README.md').read_text(encoding='utf-8'))
 
     def test_download_ref_has_valid_root_hacs_manifest(self):
         path = ROOT / "hacs.json"

@@ -1,4 +1,6 @@
-# UNiNUS Greenhouse Fan 0.5.4
+# UNiNUS Greenhouse Fan 0.5.5
+
+The approved button-icon demo A is now shipped: **▶ 開啟** and **■ 關閉**, using 16px SVG icons before the text. Icons inherit the existing button color; manual-hold behavior and authoritative output feedback are unchanged.
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
 
@@ -185,7 +187,7 @@ policy Save to atomically change four thresholds.
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.4` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.5` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
