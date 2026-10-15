@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.5.3 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.5.4 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -76,7 +76,7 @@
   };
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.5.3'}
+    static get buildVersion(){return '0.5.4'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
@@ -258,7 +258,7 @@
       const reason=diagnostic||(mode==='manual'?'全域手動：維持輸出；請先切換全域自動再恢復自動':fan?.state==='unknown'?`輸出 ${id} 狀態未知，可明確手動下達開／關指令；自動暫停直到收到有效回報`:!bound?'未綁定感測來源 · 僅手動控制；恢復自動只解除保持，自動未啟用':bad?'感測讀值不可用 · 仍可手動控制':({unbound:'未綁定感測來源',sensor_unavailable:'感測讀值不可用',fan_unavailable:'裝置不可用',manual:'手動保持',resumed:'已恢復自動',waiting_duration:'條件計時中',threshold_not_met:'維持目前狀態',action_requested:'已下達自動控制',action_failed:'控制指令失敗'}[runtime?.reason]||runtime?.reason||'—'));
       const disabled=this.canManual(id,'on')?'':'disabled';
       const high=kind=>mode==='auto' && !!device && bound && Number.isFinite(this.snapshot?.policy?.[kind+'_on']) && reading(state(this.hass,binding[kind+'_entity']),kind)>this.snapshot.policy[kind+'_on'];
-      return `<article class="fan-item ${on?'running':'off'} ${bad?'error':''}" data-key="${escape(JSON.stringify([slot.device_id||slot.fan_entity,index]))}"><header class="device-title"><h3 title="${escape(label)}">${escape(label)}</h3><span class="badge">● ${unavailable?'未知':on?'已開啟':'已關閉'}</span></header><div class="device-hero">${machine}<div class="live-status"><div class="live-line ${temp==='—'?'unavailable':high('temperature')?'threshold-high':''}" title="${escape(binding?.temperature_entity||'')}"><span>目前溫度</span><strong>${temp}<small> °C</small></strong></div><div class="live-line ${hum==='—'?'unavailable':high('humidity')?'threshold-high':''}" title="${escape(binding?.humidity_entity||'')}"><span>目前濕度</span><strong>${hum}<small> %</small></strong></div></div></div>${this.config.show_device_details?`<div class="device-details"><div class="mode-row">控制模式 <b>${escape(modeLabel)}</b> · ${escape(runtime?.pending ? '條件計時中' : '開關回報')}</div><p class="reason" title="${escape(reason)}">${escape(reason)}${diagnostic?' · <a href="/config/integrations">設定 → 裝置與服務</a>':''}</p></div>`:''}<div class="controls"><button data-fan="${escape(id)}" data-mode="on" ${disabled} class="${mode==='on'?'selected':''}">手動開啟</button><button data-fan="${escape(id)}" data-mode="off" ${disabled} class="${mode==='off'?'selected':''}">手動關閉</button>${this.snapshot?.control_mode!=='manual' && ['on','off'].includes(mode)?`<button class="resume" data-fan="${escape(id)}" data-mode="auto" ${this.canManual(id,'auto')?'':'disabled'} title="${mode==='manual'?'請先切換全域自動':'解除個別手動保持'}">恢復自動</button>`:''}</div></article>`;
+      return `<article class="fan-item ${on?'running':'off'} ${bad?'error':''}" data-key="${escape(JSON.stringify([slot.device_id||slot.fan_entity,index]))}"><header class="device-title"><h3 title="${escape(label)}">${escape(label)}</h3><span class="badge">● ${unavailable?'未知':on?'已開啟':'已關閉'}</span></header><div class="device-hero">${machine}<div class="live-status"><div class="live-line ${temp==='—'?'unavailable':high('temperature')?'threshold-high':''}" title="${escape(binding?.temperature_entity||'')}"><span>目前溫度</span><strong>${temp}<small> °C</small></strong></div><div class="live-line ${hum==='—'?'unavailable':high('humidity')?'threshold-high':''}" title="${escape(binding?.humidity_entity||'')}"><span>目前濕度</span><strong>${hum}<small> %</small></strong></div></div></div>${this.config.show_device_details?`<div class="device-details"><div class="mode-row">控制模式 <b>${escape(modeLabel)}</b> · ${escape(runtime?.pending ? '條件計時中' : '開關回報')}</div><p class="reason" title="${escape(reason)}">${escape(reason)}${diagnostic?' · <a href="/config/integrations">設定 → 裝置與服務</a>':''}</p></div>`:''}<div class="controls"><button data-fan="${escape(id)}" data-mode="on" ${disabled} class="${mode==='on'?'selected':''}">開啟</button><button data-fan="${escape(id)}" data-mode="off" ${disabled} class="${mode==='off'?'selected':''}">關閉</button>${this.snapshot?.control_mode!=='manual' && ['on','off'].includes(mode)?`<button class="resume" data-fan="${escape(id)}" data-mode="auto" ${this.canManual(id,'auto')?'':'disabled'} title="${mode==='manual'?'請先切換全域自動':'解除個別手動保持'}">恢復自動</button>`:''}</div></article>`;
     }
     render() {
       if(!this.config)return;

@@ -38,9 +38,9 @@ results={}
 for name,cmd in commands.items():
     result=subprocess.run(cmd,cwd=ROOT,capture_output=True,text=True,encoding='utf-8',errors='replace',timeout=240)
     output=result.stdout+result.stderr
-    (OUT/f'0.5.3-{name}.log').write_text(output,encoding='utf-8')
+    (OUT/f'0.5.4-{name}.log').write_text(output,encoding='utf-8')
     match=re.search(r'Ran (\d+) tests|tests (\d+)',output)
-    results[name]={'exit_code':result.returncode,'tests':int(next(x for x in match.groups() if x is not None)) if match else None,'log':f'tests/evidence/0.5.3-{name}.log'}
+    results[name]={'exit_code':result.returncode,'tests':int(next(x for x in match.groups() if x is not None)) if match else None,'log':f'tests/evidence/0.5.4-{name}.log'}
     if name == 'node':
         declared = len(re.findall(r'^test\(', (ROOT/'tests/test_card.mjs').read_text(encoding='utf-8'), re.MULTILINE))
         results[name]['declared_tests'] = declared
@@ -68,13 +68,13 @@ for file in files: json.loads(file.read_text(encoding='utf-8'))
 source=(ROOT/'www/uninus-greenhouse-fan-card.js').read_bytes()
 bundle=(ROOT/'custom_components/uninus_greenhouse_fan/card.js').read_bytes()
 assert source==bundle
-assert json.loads((ROOT/'custom_components/uninus_greenhouse_fan/manifest.json').read_text())['version']=='0.5.3'
-assert b"buildVersion(){return '0.5.3'}" in source
+assert json.loads((ROOT/'custom_components/uninus_greenhouse_fan/manifest.json').read_text())['version']=='0.5.4'
+assert b"buildVersion(){return '0.5.4'}" in source
 tracked=subprocess.check_output(['git','ls-files','-z','--cached','--others','--exclude-standard'],cwd=ROOT).decode().split('\0')
-hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(tracked)) if name and name!='docs/verification/0.5.3-frontend.json'}
+hashes={name:hashlib.sha256((ROOT/name).read_bytes()).hexdigest() for name in sorted(set(tracked)) if name and name!='docs/verification/0.5.4-frontend.json'}
 fingerprint=hashlib.sha256(json.dumps(hashes,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 threshold_file=OUT/'threshold-layout.json'
-report={'version':'0.5.3','acceptance_complete':all(x['exit_code']==0 for x in results.values()),'known_limitations':['HA 2025.12 native input_number.set_value coerces booleans to floats before entity dispatch; strict native-service boolean rejection cannot be delivered without changing its global schema.','Integration-managed input_number entities are not editable native helper storage collection records; use Entities/Options for IDs/names and native value controls.','Isolated native-HA backend and browser fixtures only; native live Helpers/Entities UI was not exercised.'],'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'runtimes':runtimes,'gates':results,'json_files_validated':len(files),'shipped_copies_equal':True,'js_sha256':hashlib.sha256(source).hexdigest(),'js_bytes':len(source),'approved_a_fixture_sha256':hashlib.sha256((ROOT/'tests/fixtures/approved-threshold-a.html').read_bytes()).hexdigest(),'working_tree_content_fingerprint':fingerprint,'fingerprint_definition':'SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report','file_hashes':hashes,'scope':'Repository-only isolated actual HA/Store/ServiceRegistry and browser fixtures; no live HA, commit, push, release, deployment, restart or hardware actuation','threshold_browser':json.loads(threshold_file.read_text(encoding='utf-8')) if threshold_file.exists() else None,'passed':all(x['exit_code']==0 for x in results.values())}
+report={'version':'0.5.4','acceptance_complete':all(x['exit_code']==0 for x in results.values()),'known_limitations':['HA 2025.12 native input_number.set_value coerces booleans to floats before entity dispatch; strict native-service boolean rejection cannot be delivered without changing its global schema.','Integration-managed input_number entities are not editable native helper storage collection records; use Entities/Options for IDs/names and native value controls.','Isolated native-HA backend and browser fixtures only; native live Helpers/Entities UI was not exercised.'],'head':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'runtimes':runtimes,'gates':results,'json_files_validated':len(files),'shipped_copies_equal':True,'js_sha256':hashlib.sha256(source).hexdigest(),'js_bytes':len(source),'approved_a_fixture_sha256':hashlib.sha256((ROOT/'tests/fixtures/approved-threshold-a.html').read_bytes()).hexdigest(),'working_tree_content_fingerprint':fingerprint,'fingerprint_definition':'SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report','file_hashes':hashes,'scope':'Repository-only isolated actual HA/Store/ServiceRegistry and browser fixtures; no live HA, commit, push, release, deployment, restart or hardware actuation','threshold_browser':json.loads(threshold_file.read_text(encoding='utf-8')) if threshold_file.exists() else None,'passed':all(x['exit_code']==0 for x in results.values())}
 report.update({
     'generated_at_utc':datetime.now(timezone.utc).isoformat(),
     'node_version':subprocess.check_output([NODE,'--version'],text=True).strip(),
@@ -85,6 +85,6 @@ report.update({
     'readings_browser':json.loads((OUT/'readings-browser.json').read_text(encoding='utf-8')),
 })
 report['known_limitations'].append('Editor checkbox clicks and Save/reopen use the actual custom editor in a synthetic Dashboard Save host, not the live HA dashboard storage dialog. Hosted CI is configured, not executed locally.')
-(ROOT/'docs/verification/0.5.3-frontend.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+(ROOT/'docs/verification/0.5.4-frontend.json').write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 print(json.dumps({k:v for k,v in report.items() if k not in ('file_hashes','threshold_browser','gates')},ensure_ascii=False))
 sys.exit(0 if report['passed'] else 1)
