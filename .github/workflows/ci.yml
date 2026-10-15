@@ -68,3 +68,5 @@ jobs:
           python tests/verify_control_browser.py
           python tests/verify_subtitle_browser.py
           python tests/verify_threshold_browser.py
+          python tests/verify_refresh_browser.py
+          python tests/verify_details_browser.py

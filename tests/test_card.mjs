@@ -17,6 +17,24 @@ function setup() {
   vm.runInNewContext(source, ctx);
   return {Card:registry.get('uninus-greenhouse-fan-card'), Editor:registry.get('uninus-greenhouse-fan-card-editor')};
 }
+test('global device details option is a typed display-only boolean with legacy default', async () => {
+  const {Card,Editor}=setup();
+  assert.equal(Card.getStubConfig().show_device_details,true);
+  await new Promise(resolve=>setTimeout(resolve,0));
+  for(const value of [undefined,null,0,'false',{},true,false]) {
+    const el=new Card();el.setConfig({...config,show_device_details:value});el.hass=groupHass();await flush();
+    assert.equal(el.config.show_device_details,value!==false);
+    const html=el.renderFan(el.config.items[0]);
+    assert.equal(html.includes('class="device-details"'),value!==false);
+    assert.match(html,/class="controls"/);assert.match(html,/class="badge"/);assert.match(html,/目前溫度/);
+  }
+  const editor=new Editor();editor.setConfig(config);editor.hass=groupHass();await flush();
+  for(const checked of [false,true]) {
+    editor.handleChange({type:'change',target:{dataset:{config:'show_device_details'},checked,value:'on'}});
+    const saved=editor.events.at(-1).detail.config;assert.equal(saved.show_device_details,checked);
+    const reopened=new Editor();reopened.setConfig(saved);assert.equal(reopened.config.show_device_details,checked);
+  }
+});
 const states = {
   'fan.a':{state:'on',attributes:{friendly_name:'Fan A'}},
   'fan.b':{state:'off',attributes:{}},
@@ -155,8 +173,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.5.1 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.1');assert.equal(Editor.buildVersion,'0.5.1');
+test('loaded custom elements expose readable 0.5.2 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.2');assert.equal(Editor.buildVersion,'0.5.2');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

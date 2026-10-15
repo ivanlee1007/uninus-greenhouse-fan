@@ -1,4 +1,10 @@
-# Native threshold entity boundary (0.5.1)
+# Native threshold entity boundary (0.5.2)
+
+The native backend boundary introduced/fixed in 0.5.1 is unchanged in 0.5.2.
+This release changes only card display configuration and refresh DOM lifecycle;
+no input_number/controller/policy code was modified. The full native suites for
+both pinned HA runtimes remain required; current execution evidence is
+`verification/0.5.2-frontend.json`. Historical 0.5.1 evidence below is retained.
 
 ## Implementation choice
 

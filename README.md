@@ -1,6 +1,20 @@
-# UNiNUS Greenhouse Fan 0.5.1
+# UNiNUS Greenhouse Fan 0.5.2
 
 Home Assistant integration with a Lovelace card based on the approved global-policy-above-grid v8 design. Repository-only development build: no deployment, release, live HA restart or physical fan operation is performed by these tests.
+
+## Compact device details and stable refresh (0.5.2)
+
+The card editor checkbox **顯示控制模式與診斷訊息** applies to every displayed fan. It defaults to checked for old YAML. Unchecking emits the typed boolean `show_device_details: false`; Dashboard Save retains it. Only the complete per-fan `.device-details` region (control mode / pending-report line and reason/diagnostic paragraph) is omitted from the DOM. No empty reserved space remains. Headers, status badges, current readings, fan buttons, global policy strip and the outer card note remain visible. This is display-only: no binding, policy or output command is sent.
+
+```yaml
+show_device_details: false  # optional; only literal false hides, default true
+```
+
+Healthy five-second refreshes now use the current authoritative snapshot without temporarily marking controls as loading. A minimal keyed DOM patch updates changed values/attributes without remounting unchanged fan articles, rotating elements, manual buttons or the global switch. Threshold ranges and Save/Cancel remain continuously connected; dirty drafts retain their original policy revision. Initial loading, read errors, unloaded/missing scopes and actual pending commands still fail closed. Polls coalesce while a read is outstanding; newer explicit reads/actions and scope/disconnect invalidate stale completions, and disconnect cancels the polling timer.
+
+The real Chromium regression failed against exact `eac6a1d` / 0.5.1: across three controlled five-second polls plus 18 `hass` updates, original control subtrees were removed, focus was lost, and 24 disabled-attribute mutations were observed. The fixed gate requires **zero original-control removals and zero disabled-attribute mutations**, identical connected nodes and CSS animation objects, retained focus/open/scroll state, updated readings and no idle writes. Deferred reads additionally test coalescing, command invalidation, real pending disable, live server diagnostics/colors/mode, failure/unload, new scope and disconnect. `docs/verification/0.5.2-refresh-red.json` records the baseline; `docs/verification/0.5.2-frontend.json` contains actual full-gate results, both HA runtime fingerprints and browser evidence.
+
+The checkbox test clicks the actual custom editor control and reopens saved false/true/false configs through a synthetic Dashboard Save host, checking refresh persistence and both themes at 390/500/720px fixed-two layout. This is **not** a test of live HA's dashboard storage dialog. Baseline reproduction: extract `git show eac6a1d:www/uninus-greenhouse-fan-card.js` to a local file, then set `CARD_TEST_SOURCE` to its absolute path when running `python tests/verify_refresh_browser.py` (expected assertion failure). Run without that variable for the fixed bundle. Existing slider pointer/keyboard and manual-mode gates remain required; CI includes both new browser scripts. No polling or changed-state rendering is disabled to hide flicker.
 
 ## Device settings: one save in the integration
 
@@ -159,7 +173,7 @@ policy Save to atomically change four thresholds.
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.1` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.2` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -169,7 +183,7 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.1'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.2'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Display-only subtitle (introduced in 0.3.1)
 
@@ -194,7 +208,7 @@ subtitle_unit: true             # optional, defaults true; state unit only, neve
 
 A missing entity/state, `unknown`, `unavailable`, null, non-finite scalar or missing selected attribute renders **—**. A missing attribute never falls back to the state. Numeric 0 and boolean false remain visible. Arrays/objects use safely escaped JSON bounded to 256 characters; failed serialization renders **—**. One entity or attribute only: no templates or text/entity composition. The picker emits config changes immediately on authoritative `value-changed`, including clears, and keeps active search mounted through state refreshes.
 
-Historical subtitle verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Current 0.5.1 results and fingerprints are in `docs/verification/0.5.1-thresholds.json`. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
+Historical subtitle verification: `docs/verification/0.3.1-frontend.json` records 50 offline Python, 42 native HA, 35 Node tests and all three browser scripts with zero skips. Current 0.5.2 results and fingerprints are in `docs/verification/0.5.2-frontend.json`. Local Chromium evidence: `tests/evidence/subtitle-layout.json` contains 36 source/attribute/unit cases and 48 theme/width/layout/mode cases at 390/500/720/1080px with right alignment, transparent borderless outer switch, 44px targets, Resume visibility and no overflow. Picker user-flow tests use an offline native-event-contract fixture, **not the live HA frontend picker**.
 
 ## Migration and old YAML
 
@@ -232,6 +246,8 @@ python tests/verify_card_browser.py
 python tests/verify_control_browser.py
 python tests/verify_subtitle_browser.py
 python tests/verify_threshold_browser.py
+python tests/verify_refresh_browser.py
+python tests/verify_details_browser.py
 ```
 
 Browser tests require Playwright and Chromium/Edge. They execute the shipped JS in a real DOM using synthetic HA state/WebSocket only: configured selection, no source-write UI, exact widths/overflow, discovery/missing/unloaded/error, manual-only relay clicks, stale reads and disconnected completions. No HA network or hardware is used.

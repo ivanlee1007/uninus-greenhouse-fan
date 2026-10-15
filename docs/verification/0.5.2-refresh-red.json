@@ -1,0 +1,41 @@
+{
+  "idle": {
+    "cycles": 3,
+    "removals": 2,
+    "disabledFlips": 24,
+    "connected": false,
+    "focused": false,
+    "scrollRetained": true,
+    "expanded": true,
+    "readCalls": 4,
+    "writes": 0
+  },
+  "cycles": [
+    {
+      "connected": false,
+      "focused": false,
+      "enabled": false,
+      "removals": 2,
+      "disabledFlips": 7
+    },
+    {
+      "connected": false,
+      "focused": false,
+      "enabled": true,
+      "removals": 2,
+      "disabledFlips": 15
+    },
+    {
+      "connected": false,
+      "focused": false,
+      "enabled": true,
+      "removals": 2,
+      "disabledFlips": 23
+    }
+  ],
+  "baseline_head": "eac6a1db1d7bda5ae4905356c9cc36180f8fa38d",
+  "baseline_js_sha256": "60d669b8292ec859ed920a844c65e4d0e1bd7197fc699f5bf17cd147fc243089",
+  "expected_exit_code": 1,
+  "observed_failure": "AssertionError: disconnected original controls and lost focus / disabled controls during idle refresh",
+  "scope": "Offline real Edge DOM, fake-clock 5s polls and deferred WS; no live HA"
+}

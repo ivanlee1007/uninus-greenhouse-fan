@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.5.1 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.5.2 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -6,7 +6,7 @@
   const validId = (value, domain) => typeof value === 'string' && value.startsWith(`${domain}.`) && value.length > domain.length + 1;
   const validDevice = value => typeof value === 'string' && /^(fan|switch)\.[a-z0-9_]+$/.test(value) && !value.includes('\n');
   const item = value => ({...value,fan_entity:value.fan_entity || '',name:value.name || ''});
-  const clean = value => ({...value,type:'custom:uninus-greenhouse-fan-card',entry_id:value.entry_id || '',name:value.name || '',subtitle_mode:value.subtitle_mode==='entity'?'entity':'text',subtitle_entity:typeof value.subtitle_entity==='string'?value.subtitle_entity:'',subtitle_attribute:typeof value.subtitle_attribute==='string'?value.subtitle_attribute:'',subtitle_unit:value.subtitle_unit!==false,subtitle_text:typeof value.subtitle_text==='string'?value.subtitle_text:'各區獨立感測 · 同群組共用門檻',layout:['1','2'].includes(String(value.layout))?String(value.layout):'auto',theme:value.theme === 'light'?'light':'dark',items:Array.isArray(value.items)?value.items.map(item):[]});
+  const clean = value => ({...value,type:'custom:uninus-greenhouse-fan-card',entry_id:value.entry_id || '',name:value.name || '',subtitle_mode:value.subtitle_mode==='entity'?'entity':'text',subtitle_entity:typeof value.subtitle_entity==='string'?value.subtitle_entity:'',subtitle_attribute:typeof value.subtitle_attribute==='string'?value.subtitle_attribute:'',show_device_details:value.show_device_details!==false,subtitle_unit:value.subtitle_unit!==false,subtitle_text:typeof value.subtitle_text==='string'?value.subtitle_text:'各區獨立感測 · 同群組共用門檻',layout:['1','2'].includes(String(value.layout))?String(value.layout):'auto',theme:value.theme === 'light'?'light':'dark',items:Array.isArray(value.items)?value.items.map(item):[]});
   const notify = element => element.dispatchEvent(new CustomEvent('config-changed',{bubbles:true,composed:true,detail:{config:clean(element.config)}}));
   const state = (hass,id) => hass?.states?.[id];
   const subtitle = (config,hass) => {
@@ -47,25 +47,47 @@
     .fans{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,310px),1fr));gap:8px;width:100%;min-width:0}.layout-1 .fans{grid-template-columns:1fr}.layout-2 .fans{grid-template-columns:repeat(2,minmax(0,1fr))}
     .fan-item{display:flex;flex-direction:column;min-width:0;border:1px solid var(--border);border-radius:13px;padding:10px;background:var(--surface)}.device-title{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:26px;margin-bottom:7px}.device-title h3{font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.badge{font-size:11px;color:var(--good);white-space:nowrap}.off .badge{color:var(--muted)}.error .badge,.unavailable{color:var(--danger)}.device-hero{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:100px}.scene{width:96px;height:96px;flex:0 0 auto;display:grid;place-items:center}.fan-machine{position:relative;width:90px;height:90px;border:7px solid #4d686d;border-radius:15px;background:radial-gradient(circle,#334851 0%,#182a31 68%);box-shadow:inset 0 0 0 3px #809496,0 5px 12px #0006}.fan-wheel{position:absolute;inset:9px;border:3px solid #806668;border-radius:50%;overflow:hidden}.rotor{position:absolute;inset:4px;animation:spin 1.2s linear infinite}.rotor svg{width:100%;height:100%;fill:#8a9499}.running .rotor svg{fill:#dc5b56}.hub{position:absolute;left:50%;top:50%;width:19px;height:19px;transform:translate(-50%,-50%);border:2px solid #abb5ba;border-radius:50%;background:radial-gradient(circle at 30% 25%,#cbd3d7,#667077 80%)}.running .hub{border-color:#f19b8b;background:radial-gradient(circle at 30% 25%,#ffc2ae,#aa393d 80%)}.off .rotor{animation-play-state:paused}@keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.rotor{animation:none}}
     .live-status{margin-left:auto;text-align:right;min-width:0;display:grid;justify-items:end;gap:9px}.live-line{width:100%;text-align:right}.live-line span,.live-line strong{display:block}.live-line span{color:var(--muted);font-size:11px}.live-line strong{font-size:21px}.live-line.threshold-high strong,.live-line.threshold-high strong small{color:var(--danger)}.live-line.threshold-high strong{text-decoration:underline;text-decoration-thickness:2px;text-underline-offset:3px}.device-details{min-height:48px;margin:6px 0 6px}.mode-row{font-size:11px}.reason{color:var(--muted);font-size:11px;margin-top:4px;min-height:2em}.controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:auto}.controls button.resume{grid-column:1/-1}.controls button.selected{border-color:var(--accent);color:var(--accent)}.card-note{margin-top:10px;font-size:11px;color:var(--muted)}.status{color:var(--danger);margin:8px 0}
-    .editor{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:16px}.editor h2{font-size:17px;margin-bottom:12px}.editor p{color:var(--muted);margin:8px 0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{min-width:0}.field.wide{grid-column:1/-1}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.field ha-entity-picker{display:block;min-width:0}.slot{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:12px 0}.slot-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.slot-actions{display:flex;gap:5px}.slot-actions button{min-width:40px}.feedback{color:var(--good)!important}.feedback.failure{color:var(--danger)!important}.notice{border:1px solid var(--border);border-radius:8px;padding:9px;margin:12px 0}.editor-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
+    .editor{background:var(--bg);border:1px solid var(--border);border-radius:16px;padding:16px}.editor h2{font-size:17px;margin-bottom:12px}.editor p{color:var(--muted);margin:8px 0}.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.field{min-width:0}.field.wide{grid-column:1/-1}.field label{display:block;color:var(--muted);font-size:12px;margin-bottom:4px}.field ha-entity-picker{display:block;min-width:0}.field label.details-option{display:flex;align-items:center;gap:8px;min-height:44px}.details-option input{width:20px;min-height:20px;flex:0 0 20px;margin:0}.slot{padding:12px;border:1px solid var(--border);border-radius:10px;background:var(--surface);margin:12px 0}.slot-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}.slot-actions{display:flex;gap:5px}.slot-actions button{min-width:40px}.feedback{color:var(--good)!important}.feedback.failure{color:var(--danger)!important}.notice{border:1px solid var(--border);border-radius:8px;padding:9px;margin:12px 0}.editor-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}
     @container(max-width:630px){.layout-2 .fan-item{padding:8px}.layout-2 .device-title{flex-wrap:wrap;gap:3px}.layout-2 .device-title h3{width:100%;font-size:13px}.layout-2 .device-hero{flex-direction:column;gap:4px}.layout-2 .live-status{margin:0;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;justify-items:stretch}.layout-2 .live-line{text-align:center}.layout-2 .live-line strong{font-size:16px;white-space:nowrap}.layout-2 .live-line span{font-size:10px}.layout-2 .controls{gap:4px}.layout-2 .controls button{padding:6px 2px;font-size:11px;min-width:0;min-height:44px}.layout-2 .reason{overflow-wrap:anywhere}.layout-2 .mode-row{overflow-wrap:anywhere}}@container(max-width:370px){.card{padding:13px}.header h2{font-size:17px}.global summary{gap:6px}.limit-pair{flex-basis:100%;justify-content:space-between}.limit-pair b{font-size:13px}.device-hero{gap:6px}.scene{width:80px;height:80px}.fan-machine{transform:scale(.82)}.live-line strong{font-size:17px}}@media(max-width:450px){.fields{grid-template-columns:1fr}.global-body{grid-template-columns:1fr}}
     .threshold-demo{grid-column:1/-1;min-width:0}.threshold-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.threshold-group{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--inner)}.threshold-group h3{font-size:13px;margin:0 0 8px}.slider-row{display:grid;grid-template-columns:64px minmax(0,1fr) 70px;align-items:center;gap:8px;margin:7px 0}.slider-row label{font-size:12px;color:var(--muted)}.slider-row input[type=range]{padding:0;min-height:30px;accent-color:var(--accent);width:100%;border:0;background:transparent;cursor:pointer}.slider-row output{font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}.help{font-size:11px;color:var(--muted);margin-top:6px}.threshold-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}.threshold-actions .notice-text{font-size:11px;color:var(--muted);margin-right:auto}.threshold-actions button{min-height:44px;font-size:12px;padding:6px 12px}.threshold-actions button.save{background:var(--accent);color:var(--bg);border-color:var(--accent)}.validation{font-size:12px;color:var(--danger);margin:5px 0}@container(max-width:520px){.threshold-grid{grid-template-columns:1fr}.slider-row{grid-template-columns:64px minmax(0,1fr) 65px}}
   </style>`;
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
 
+  // Patch only changed attributes/text. Keyed live controls never detach on a
+  // healthy snapshot: focus, pointer capture, and CSS animation stay owned.
+  const nodeKey=node=>node.nodeType===1?(node.getAttribute('data-key') || (node.hasAttribute('data-mode')?'mode:'+node.getAttribute('data-mode'):'')):'';
+  const patchLive=(target,next)=>{
+    if(target.nodeType===3){if(target.data!==next.data)target.data=next.data;return}
+    for(const attr of [...target.attributes])if(!next.hasAttribute(attr.name))target.removeAttribute(attr.name);
+    for(const attr of [...next.attributes])if(target.getAttribute(attr.name)!==attr.value)target.setAttribute(attr.name,attr.value);
+    const original=[...target.childNodes],used=new Set();
+    for(const [index,child] of [...next.childNodes].entries()){
+      const key=nodeKey(child);
+      let old=key?original.find(n=>nodeKey(n)===key && !used.has(n)):original[index];
+      if(old && (used.has(old) || nodeKey(old)!==key || old.nodeType!==child.nodeType || old.nodeName!==child.nodeName))old=null;
+      if(!old){target.insertBefore(child,target.childNodes[index]||null);continue}
+      used.add(old);
+      if(target.childNodes[index]!==old)target.insertBefore(old,target.childNodes[index]||null);
+      patchLive(old,child);
+    }
+    for(const old of original)if(!used.has(old) && old.parentNode===target)old.remove();
+  };
+
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.5.1'}
+    static get buildVersion(){return '0.5.2'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
     invalidate() {this.epoch++;this.request++;this.loading=false;this.busy='';this.operation=null;this.snapshot=null;this.resolvedId='';this.error=''}
     connectedCallback(){this.detached=false;if(this.config && this.hass)this.load()}
     disconnectedCallback(){this.detached=true;this.invalidate()}
-    async load() {
-      if(!this.hass?.callWS || !this.config || this.detached || this.operation)return;
+    async load({background=false}={}) {
+      if(!this.hass?.callWS || !this.config || this.detached || this.operation || (background && this.reading))return;
       const config=this.config,epoch=this.epoch,sequence=++this.request;
       const current=()=>!this.detached && epoch===this.epoch && sequence===this.request && config===this.config;
-      this.loading=true;
+      this.reading=sequence;
+      // Healthy snapshots remain actionable during read-only refreshes.
+      this.loading=!this.snapshot || this.snapshot.entry_id!==this.resolvedId || !!this.error;
       try {
         const rows=await this.hass.callWS({type:PREFIX+'groups'});
         if(!current())return;
@@ -78,7 +100,7 @@
         if(config.entry_id && !selected){this.snapshot=null;this.error='已儲存的控制群組不存在；請選擇群組或檢查整合設定';return}
         if(selected && !selected.loaded){this.snapshot=null;this.error='控制群組尚未載入；請在整合設定檢查或重新載入';return}
         if(!id){this.snapshot=null;return}
-        if(previousId!==id)this.snapshot=null;
+        if(previousId!==id){this.snapshot=null;this.loading=true}
         this.resolvedId=id;this.render();
         const result=await this.hass.callWS({type:PREFIX+'get',entry_id:id});
         if(!current())return;
@@ -86,7 +108,7 @@
         if(!config.entry_id && this instanceof FanEditor){config.entry_id=id;notify(this)}
       } catch(error) {
         if(current()){this.snapshot=null;this.resolvedId='';this.error='讀取控制群組失敗：'+errorText(error)}
-      } finally {if(current()){this.loading=false;this.render()}}
+      } finally {if(this.reading===sequence)this.reading=null;if(current()){this.loading=false;this.render()}}
     }
     selectGroup(id) {
       if(!this.groups?.some(row=>row.entry_id===id && row.loaded))return;
@@ -175,21 +197,21 @@
         input.min=kind==='temperature' && nativeValid?Math.min(0,this.snapshot.policy.temperature_off):0;
         input.max=kind==='temperature' && nativeValid?Math.max(50,this.snapshot.policy.temperature_on):100;
         if(Number.isFinite(p[key]) && Number(input.value)!==p[key])input.value=p[key];
-        input.disabled=!this.canEditThresholds() || !nativeValid;
+        const disabled=!this.canEditThresholds() || !nativeValid;if(input.disabled!==disabled)input.disabled=disabled;
         input.nextElementSibling.textContent=Number.isFinite(p[key])?p[key].toFixed(1)+(kind==='temperature'?' °C':' %'):'—';
       }
       const range=root.querySelector('[data-range-help="temperature"]');
       if(range){const saved=this.snapshot?.policy,valid=!thresholdValidation(saved);range.textContent=valid && (saved.temperature_off<0 || saved.temperature_on>50)?` 既有門檻範圍：${String(Math.min(0,saved.temperature_off)).replace('-','−')}～${Math.max(50,saved.temperature_on)} °C。`:''}
       const message=root.querySelector('.validation');if(message){message.hidden=!validation;message.textContent=validation;if(validation)message.setAttribute('role','alert');else message.removeAttribute('role')}
-      const save=root.querySelector('[data-save]');if(save)save.disabled=!this.thresholdDraft || !this.canEditThresholds() || this.loading || !!validation;
-      const cancel=root.querySelector('[data-cancel]');if(cancel)cancel.disabled=!this.thresholdDraft || !!this.operation;
+      const save=root.querySelector('[data-save]'),saveDisabled=!this.thresholdDraft || !this.canEditThresholds() || this.loading || !!validation;if(save && save.disabled!==saveDisabled)save.disabled=saveDisabled;
+      const cancel=root.querySelector('[data-cancel]'),cancelDisabled=!this.thresholdDraft || !!this.operation;if(cancel && cancel.disabled!==cancelDisabled)cancel.disabled=cancelDisabled;
       const notice=root.querySelector('.notice-text');if(notice)notice.textContent=this.operation?.kind==='policy'?'正在儲存；控制仍使用原門檻。':this.thresholdDraft?'尚未儲存 · 自動控制仍使用已儲存門檻':this.policyNotice || (this.hass?.user?.is_admin===true?'調整後一次儲存；不會立即開關風扇。':'只有管理員可以儲存門檻。');
       const help=root.querySelector('[data-duration-help]');if(help)help.textContent=`啟動：溫度或濕度超過上限，持續 ${this.snapshot?.policy?.duration_seconds ?? '—'} 秒。停止：兩者皆降至下限，持續相同秒數。`;
     }
     static getConfigElement() {return document.createElement('uninus-greenhouse-fan-card-editor')}
-    static getStubConfig() {return {type:'custom:uninus-greenhouse-fan-card',entry_id:'',name:'Greenhouse fans',items:[],layout:'auto',theme:'dark'}}
+    static getStubConfig() {return {type:'custom:uninus-greenhouse-fan-card',entry_id:'',name:'Greenhouse fans',items:[],layout:'auto',theme:'dark',show_device_details:true}}
     setConfig(config) {const next=clean(config);if(this.config && JSON.stringify(this.config)===JSON.stringify(next))return;this.invalidate();this.config=next;this.load();this.render()}
-    connectedCallback(){this.detached=false;if(!this._poll){this._poll=setInterval(()=>this.load(),5000)}if(this.config && this.hass)this.load()}
+    connectedCallback(){this.detached=false;if(!this._poll){this._poll=setInterval(()=>this.load({background:true}),5000)}if(this.config && this.hass)this.load()}
     disconnectedCallback(){clearInterval(this._poll);this._poll=null;super.disconnectedCallback()}
     set hass(value) {this._hass=value;if(this.config && !this.snapshot && !this.loading)this.load();this.render()}
     get hass() {return this._hass}
@@ -223,7 +245,7 @@
       } catch(error){if(current())this.error=errorText(error)}
       finally {if(current()){this.operation=null;this.busy='';this.render()}}
     }
-    renderFan(slot) {
+    renderFan(slot,index=0) {
       const device=this.resolveDevice(slot),id=this.output(slot),fan=state(this.hass,id),binding=this.snapshot?.bindings?.[id],runtime=this.snapshot?.runtime?.[id];
       const unavailable=!validDevice(id) || !['on','off'].includes(fan?.state),bound=validId(binding?.temperature_entity,'sensor')&&validId(binding?.humidity_entity,'sensor');
       const temp=bound?number(state(this.hass,binding.temperature_entity),'temperature'):'—',hum=bound?number(state(this.hass,binding.humidity_entity),'humidity'):'—';
@@ -234,7 +256,7 @@
       const reason=diagnostic||(mode==='manual'?'全域手動：維持輸出；請先切換全域自動再恢復自動':fan?.state==='unknown'?`輸出 ${id} 狀態未知，可明確手動下達開／關指令；自動暫停直到收到有效回報`:!bound?'未綁定感測來源 · 僅手動控制；恢復自動只解除保持，自動未啟用':bad?'感測讀值不可用 · 仍可手動控制':({unbound:'未綁定感測來源',sensor_unavailable:'感測讀值不可用',fan_unavailable:'裝置不可用',manual:'手動保持',resumed:'已恢復自動',waiting_duration:'條件計時中',threshold_not_met:'維持目前狀態',action_requested:'已下達自動控制',action_failed:'控制指令失敗'}[runtime?.reason]||runtime?.reason||'—'));
       const disabled=this.canManual(id,'on')?'':'disabled';
       const high=kind=>mode==='auto' && !!device && bound && Number.isFinite(this.snapshot?.policy?.[kind+'_on']) && reading(state(this.hass,binding[kind+'_entity']),kind)>this.snapshot.policy[kind+'_on'];
-      return `<article class="fan-item ${on?'running':'off'} ${bad?'error':''}"><header class="device-title"><h3 title="${escape(label)}">${escape(label)}</h3><span class="badge">● ${unavailable?'未知':on?'已開啟':'已關閉'}</span></header><div class="device-hero">${machine}<div class="live-status"><div class="live-line ${temp==='—'?'unavailable':high('temperature')?'threshold-high':''}" title="${escape(binding?.temperature_entity||'')}"><span>目前溫度</span><strong>${temp}<small> °C</small></strong></div><div class="live-line ${hum==='—'?'unavailable':high('humidity')?'threshold-high':''}" title="${escape(binding?.humidity_entity||'')}"><span>目前濕度</span><strong>${hum}<small> %</small></strong></div></div></div><div class="device-details"><div class="mode-row">控制模式 <b>${escape(modeLabel)}</b> · ${escape(runtime?.pending ? '條件計時中' : '開關回報')}</div><p class="reason" title="${escape(reason)}">${escape(reason)}${diagnostic?' · <a href="/config/integrations">設定 → 裝置與服務</a>':''}</p></div><div class="controls"><button data-fan="${escape(id)}" data-mode="on" ${disabled} class="${mode==='on'?'selected':''}">手動開啟</button><button data-fan="${escape(id)}" data-mode="off" ${disabled} class="${mode==='off'?'selected':''}">手動關閉</button>${this.snapshot?.control_mode!=='manual' && ['on','off'].includes(mode)?`<button class="resume" data-fan="${escape(id)}" data-mode="auto" ${this.canManual(id,'auto')?'':'disabled'} title="${mode==='manual'?'請先切換全域自動':'解除個別手動保持'}">恢復自動</button>`:''}</div></article>`;
+      return `<article class="fan-item ${on?'running':'off'} ${bad?'error':''}" data-key="${escape(JSON.stringify([slot.device_id||slot.fan_entity,index]))}"><header class="device-title"><h3 title="${escape(label)}">${escape(label)}</h3><span class="badge">● ${unavailable?'未知':on?'已開啟':'已關閉'}</span></header><div class="device-hero">${machine}<div class="live-status"><div class="live-line ${temp==='—'?'unavailable':high('temperature')?'threshold-high':''}" title="${escape(binding?.temperature_entity||'')}"><span>目前溫度</span><strong>${temp}<small> °C</small></strong></div><div class="live-line ${hum==='—'?'unavailable':high('humidity')?'threshold-high':''}" title="${escape(binding?.humidity_entity||'')}"><span>目前濕度</span><strong>${hum}<small> %</small></strong></div></div></div>${this.config.show_device_details?`<div class="device-details"><div class="mode-row">控制模式 <b>${escape(modeLabel)}</b> · ${escape(runtime?.pending ? '條件計時中' : '開關回報')}</div><p class="reason" title="${escape(reason)}">${escape(reason)}${diagnostic?' · <a href="/config/integrations">設定 → 裝置與服務</a>':''}</p></div>`:''}<div class="controls"><button data-fan="${escape(id)}" data-mode="on" ${disabled} class="${mode==='on'?'selected':''}">手動開啟</button><button data-fan="${escape(id)}" data-mode="off" ${disabled} class="${mode==='off'?'selected':''}">手動關閉</button>${this.snapshot?.control_mode!=='manual' && ['on','off'].includes(mode)?`<button class="resume" data-fan="${escape(id)}" data-mode="auto" ${this.canManual(id,'auto')?'':'disabled'} title="${mode==='manual'?'請先切換全域自動':'解除個別手動保持'}">恢復自動</button>`:''}</div></article>`;
     }
     render() {
       if(!this.config)return;
@@ -245,12 +267,12 @@
       const p=this.snapshot?.policy || {}, items=this.config.items;
       const tOn=p.temperature_on ?? '—',tOff=p.temperature_off ?? '—',hOn=p.humidity_on ?? '—',hOff=p.humidity_off ?? '—';
       const count=items.filter(x=>state(this.hass,this.output(x))?.state==='on').length;
-      const html=`${styles}<section class="card layout-${this.config.layout}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header><div class="group-status">${this.groupMarkup()}</div><div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body">${this.thresholdMarkup()}</div></details><div class="fans">${items.map(x=>this.renderFan(x)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
+      const html=`${styles}<section class="card layout-${this.config.layout}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header><div class="group-status">${this.groupMarkup()}</div><div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body">${this.thresholdMarkup()}</div></details><div class="fans">${items.map((x,i)=>this.renderFan(x,i)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
       if(retain){
         // Patch live regions only: focused/dragged range nodes never detach.
         const next=document.createElement('template');next.innerHTML=html;
         for(const selector of ['.header','.group-status','.global summary','.fans','.card-note']){
-          this.shadowRoot.querySelector(selector).replaceWith(next.content.querySelector(selector));
+          patchLive(this.shadowRoot.querySelector(selector),next.content.querySelector(selector));
         }
       }else this.shadowRoot.innerHTML=html;
       const controls=this.shadowRoot.querySelector('.threshold-demo');if(controls)controls.dataset.scope=this.resolvedId;
@@ -296,7 +318,7 @@
         this.config.subtitle_entity=typeof e.detail.value==='string'?e.detail.value:'';notify(this);this.updateSubtitlePreview();return;
       }
       if(target.dataset.group){this.selectGroup(target.value);return}
-      if(target.dataset.config){const field=target.dataset.config;if(!['name','theme','layout','subtitle_mode','subtitle_text','subtitle_attribute','subtitle_unit'].includes(field))return;this.config[field]=field==='subtitle_unit'?target.checked:target.value;if(['name','subtitle_text','subtitle_attribute','subtitle_unit'].includes(field)){notify(this);this.updateSubtitlePreview()}else this.emit();return}
+      if(target.dataset.config){const field=target.dataset.config;if(!['name','theme','layout','subtitle_mode','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details'].includes(field))return;this.config[field]=['subtitle_unit','show_device_details'].includes(field)?target.checked===true:target.value;if(['name','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details'].includes(field)){notify(this);this.updateSubtitlePreview()}else this.emit();return}
       if(target.dataset.field)this.setItemField(Number(target.dataset.index),target.dataset.field,target.value);
     }
     handleClick(e){const button=e.target.closest?.('button[data-action]');if(!button)return;const index=Number(button.dataset.index);switch(button.dataset.action){case 'add':this.config.items.push({fan_entity:'',name:''});this.emit();break;case 'remove':this.removeItem(index);break;case 'up':this.moveItem(index,-1);break;case 'down':this.moveItem(index,1);break;case 'refresh':this.load();break}}
@@ -309,6 +331,9 @@
       const preview=this.shadowRoot.querySelector('[data-subtitle-preview]');
       if(preview){const text=subtitle(this.config,this.hass);preview.textContent=text;preview.hidden=!text}
     }
+    deviceDetailsField(){
+      return `<div class="field wide"><label class="details-option"><input type="checkbox" data-config="show_device_details" ${this.config.show_device_details?'checked':''}>顯示控制模式與診斷訊息</label><small>套用所有風扇；關閉只隱藏控制模式、條件計時與診斷訊息，不影響控制。</small></div>`;
+    }
     subtitleFields(){
       return `<div class="field wide"><label>副標題來源</label><select data-config="subtitle_mode" aria-label="副標題來源"><option value="text" ${this.config.subtitle_mode==='text'?'selected':''}>文字</option><option value="entity" ${this.config.subtitle_mode==='entity'?'selected':''}>實體</option></select></div>${this.config.subtitle_mode==='text'?`<div class="field wide"><label>副標題文字（留空隱藏）</label><input aria-label="副標題文字" data-config="subtitle_text" value="${escape(this.config.subtitle_text)}"></div>`:`<div class="field wide"><label>副標題實體（留空隱藏）</label><ha-entity-picker data-config="subtitle_entity"></ha-entity-picker></div><div class="field"><label>屬性（選填；留空顯示狀態）</label><input aria-label="副標題屬性" data-config="subtitle_attribute" value="${escape(this.config.subtitle_attribute)}"></div><div class="field"><label><input type="checkbox" data-config="subtitle_unit" ${this.config.subtitle_unit?'checked':''}>顯示狀態單位</label></div>`}<div class="field wide"><label>副標題預覽</label><p class="sub" data-subtitle-preview></p><small>僅顯示單一實體狀態或屬性；不支援模板。Dashboard Save 儲存，Cancel 不會修改後端。</small></div>`;
     }
@@ -316,7 +341,7 @@
       if(!this.config)return;
       if(!force && this.shadowRoot.activeElement?.matches?.('input,ha-entity-picker')){this.updateSubtitlePreview();return}
       this.setAttribute?.('data-theme',this.config.theme);
-      this.shadowRoot.innerHTML=`${styles}<section class="editor"><h2>風扇卡片設定</h2><p class="notice">裝置與感測來源：<a href="/config/integrations">設定 → 裝置與服務 → UNiNUS Greenhouse Fan → 設定</a>。此處只儲存顯示項目、順序、名稱與外觀。</p><div class="fields">${this.groupMarkup()}<div class="field wide"><label>卡片標題</label><input data-config="name" value="${escape(this.config.name)}"></div>${this.subtitleFields()}<div class="field"><label>主題</label><select data-config="theme"><option value="dark" ${this.config.theme==='dark'?'selected':''}>深夜石墨</option><option value="light" ${this.config.theme==='light'?'selected':''}>雲霧白</option></select></div><div class="field"><label>每列設備數</label><select data-config="layout"><option value="auto" ${this.config.layout==='auto'?'selected':''}>自動排列</option><option value="1" ${this.config.layout==='1'?'selected':''}>1 欄</option><option value="2" ${this.config.layout==='2'?'selected':''}>2 欄</option></select></div></div><button data-action="refresh">重新讀取裝置</button>${this.config.items.map((slot,i)=>this.renderItem(slot,i)).join('')}<div class="editor-actions"><button data-action="add">＋ 新增顯示項目</button></div><p>移除顯示項目不會刪除整合裝置，也不會控制風扇。</p></section>`;
+      this.shadowRoot.innerHTML=`${styles}<section class="editor"><h2>風扇卡片設定</h2><p class="notice">裝置與感測來源：<a href="/config/integrations">設定 → 裝置與服務 → UNiNUS Greenhouse Fan → 設定</a>。此處只儲存顯示項目、順序、名稱與外觀。</p><div class="fields">${this.groupMarkup()}<div class="field wide"><label>卡片標題</label><input data-config="name" value="${escape(this.config.name)}"></div>${this.subtitleFields()}${this.deviceDetailsField()}<div class="field"><label>主題</label><select data-config="theme"><option value="dark" ${this.config.theme==='dark'?'selected':''}>深夜石墨</option><option value="light" ${this.config.theme==='light'?'selected':''}>雲霧白</option></select></div><div class="field"><label>每列設備數</label><select data-config="layout"><option value="auto" ${this.config.layout==='auto'?'selected':''}>自動排列</option><option value="1" ${this.config.layout==='1'?'selected':''}>1 欄</option><option value="2" ${this.config.layout==='2'?'selected':''}>2 欄</option></select></div></div><button data-action="refresh">重新讀取裝置</button>${this.config.items.map((slot,i)=>this.renderItem(slot,i)).join('')}<div class="editor-actions"><button data-action="add">＋ 新增顯示項目</button></div><p>移除顯示項目不會刪除整合裝置，也不會控制風扇。</p></section>`;
       const picker=this.shadowRoot.querySelector('ha-entity-picker[data-config="subtitle_entity"]');
       if(picker){picker.hass=this.hass;picker.value=this.config.subtitle_entity;picker.label='副標題實體';picker.allowCustomEntity=true}
       this.updateSubtitlePreview();
