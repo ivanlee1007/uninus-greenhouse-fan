@@ -8,7 +8,7 @@ from homeassistant.components.lovelace.const import LOVELACE_DATA, MODE_YAML
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
-CARD_VERSION = "0.5.6"
+CARD_VERSION = "0.6.0"
 CARD_PATH = f"/{DOMAIN}/card.js"
 CARD_URL = f"{CARD_PATH}?v={CARD_VERSION}"
 

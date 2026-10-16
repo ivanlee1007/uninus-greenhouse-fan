@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.5.6 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.6.0 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -6,7 +6,7 @@
   const validId = (value, domain) => typeof value === 'string' && value.startsWith(`${domain}.`) && value.length > domain.length + 1;
   const validDevice = value => typeof value === 'string' && /^(fan|switch)\.[a-z0-9_]+$/.test(value) && !value.includes('\n');
   const item = value => ({...value,fan_entity:value.fan_entity || '',name:value.name || ''});
-  const clean = value => ({...value,type:'custom:uninus-greenhouse-fan-card',entry_id:value.entry_id || '',name:value.name || '',subtitle_mode:value.subtitle_mode==='entity'?'entity':'text',subtitle_entity:typeof value.subtitle_entity==='string'?value.subtitle_entity:'',subtitle_attribute:typeof value.subtitle_attribute==='string'?value.subtitle_attribute:'',lock_readings_right:value.lock_readings_right===true,show_device_details:value.show_device_details!==false,subtitle_unit:value.subtitle_unit!==false,subtitle_text:typeof value.subtitle_text==='string'?value.subtitle_text:'各區獨立感測 · 同群組共用門檻',layout:['1','2'].includes(String(value.layout))?String(value.layout):'auto',theme:value.theme === 'light'?'light':'dark',items:Array.isArray(value.items)?value.items.map(item):[]});
+  const clean = value => ({...value,type:'custom:uninus-greenhouse-fan-card',entry_id:value.entry_id || '',name:value.name || '',subtitle_mode:value.subtitle_mode==='entity'?'entity':'text',subtitle_entity:typeof value.subtitle_entity==='string'?value.subtitle_entity:'',subtitle_attribute:typeof value.subtitle_attribute==='string'?value.subtitle_attribute:'',lock_readings_right:value.lock_readings_right===true,readings_layout:typeof value.readings_layout==='string' && ['compact','columns','split'].includes(value.readings_layout)?value.readings_layout:'split',show_device_details:value.show_device_details!==false,subtitle_unit:value.subtitle_unit!==false,subtitle_text:typeof value.subtitle_text==='string'?value.subtitle_text:'各區獨立感測 · 同群組共用門檻',layout:['1','2'].includes(String(value.layout))?String(value.layout):'auto',theme:value.theme === 'light'?'light':'dark',items:Array.isArray(value.items)?value.items.map(item):[]});
   const notify = element => element.dispatchEvent(new CustomEvent('config-changed',{bubbles:true,composed:true,detail:{config:clean(element.config)}}));
   const state = (hass,id) => hass?.states?.[id];
   const subtitle = (config,hass) => {
@@ -52,6 +52,30 @@
     .threshold-demo{grid-column:1/-1;min-width:0}.threshold-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.threshold-group{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--inner)}.threshold-group h3{font-size:13px;margin:0 0 8px}.slider-row{display:grid;grid-template-columns:64px minmax(0,1fr) 70px;align-items:center;gap:8px;margin:7px 0}.slider-row label{font-size:12px;color:var(--muted)}.slider-row input[type=range]{padding:0;min-height:30px;accent-color:var(--accent);width:100%;border:0;background:transparent;cursor:pointer}.slider-row output{font-size:13px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}.help{font-size:11px;color:var(--muted);margin-top:6px}.threshold-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-top:10px;flex-wrap:wrap}.threshold-actions .notice-text{font-size:11px;color:var(--muted);margin-right:auto}.threshold-actions button{min-height:44px;font-size:12px;padding:6px 12px}.threshold-actions button.save{background:var(--accent);color:var(--bg);border-color:var(--accent)}.validation{font-size:12px;color:var(--danger);margin:5px 0}@container(max-width:520px){.threshold-grid{grid-template-columns:1fr}.slider-row{grid-template-columns:64px minmax(0,1fr) 65px}}
     /* Opt-in only; hero-local units size the whole animation, not the rotor. */
     .readings-right .device-hero{container-type:inline-size;flex-direction:row;gap:4px;min-height:0}.readings-right .scene{width:clamp(40px,30cqw,96px);height:auto;aspect-ratio:1;flex:0 0 auto}.readings-right .fan-machine{width:100%;height:100%;transform:none;border-width:clamp(3px,2.2cqw,7px)}.readings-right .fan-wheel{inset:10%;border-width:2px}.readings-right .hub{width:22%;height:22%;border-width:1px}.readings-right .live-status{margin:0 0 0 auto;width:max-content;flex:0 0 auto;grid-template-columns:1fr;gap:4px;justify-items:end}.readings-right .live-line{text-align:right}.readings-right .live-line span{font-size:10px}.readings-right .live-line strong{font-size:clamp(13px,9cqw,21px);white-space:nowrap}
+    /* Named card query stays stable through hero/field containment. Opt-in only. */
+    .card{container-name:uninus-fan-card}
+    .readings-right .device-hero{align-items:center}
+    .readings-right .live-status{margin:0;width:max-content;flex:0 0 auto;grid-template-columns:1fr;gap:4px}
+    .readings-right .scene{justify-self:center}
+    .readings-right .live-line{width:100%}
+    .readings-compact .device-hero{display:flex;justify-content:center;gap:20px}
+    .readings-compact .live-status{justify-items:end}
+    .readings-compact .live-line{text-align:right}
+    .readings-split .device-hero{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0}
+    .readings-split .scene{justify-self:center;max-width:100%}
+    .readings-split .live-status{display:grid;justify-self:center;justify-items:center}
+    .readings-split .live-line{text-align:center}
+    /* B owns definite grid tracks; cqw below is each readout, never viewport/card. */
+    .readings-columns .device-hero{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+    .readings-columns .scene{max-width:100%}
+    .readings-columns .live-status{display:contents}
+    .readings-columns .live-line{container-type:inline-size;container-name:uninus-reading-field;min-width:0;width:100%;justify-self:stretch;text-align:center}
+    .readings-columns .live-line strong{font-size:clamp(13px,15cqw,36px)}
+    .readings-columns .live-line:nth-child(2) strong{font-size:clamp(14px,16cqw,40px)}
+    .readings-columns .live-line strong small{font-size:.55em}
+    .readings-columns .live-line span{font-size:clamp(10px,6cqw,12px)}
+    @container uninus-fan-card (max-width:440px){.readings-columns .device-hero{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.readings-columns .live-status{display:grid;width:100%;justify-self:stretch;justify-items:stretch}}
+    @container uninus-fan-card (max-width:630px){.readings-columns.layout-2 .device-hero{grid-template-columns:repeat(2,minmax(0,1fr));gap:0}.readings-columns.layout-2 .live-status{display:grid;width:100%;justify-self:stretch;justify-items:stretch}}
     .controls button{display:inline-flex;align-items:center;justify-content:center;gap:6px}.controls .action-icon{width:16px;height:16px;flex:0 0 16px;vertical-align:middle}.controls button span{white-space:nowrap}
   </style>`;
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
@@ -77,7 +101,7 @@
   };
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.5.6'}
+    static get buildVersion(){return '0.6.0'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }
@@ -213,7 +237,7 @@
       const help=root.querySelector('[data-duration-help]');if(help)help.textContent=`啟動：溫度或濕度超過上限，持續 ${this.snapshot?.policy?.duration_seconds ?? '—'} 秒。停止：兩者皆降至下限，持續相同秒數。`;
     }
     static getConfigElement() {return document.createElement('uninus-greenhouse-fan-card-editor')}
-    static getStubConfig() {return {type:'custom:uninus-greenhouse-fan-card',entry_id:'',name:'Greenhouse fans',items:[],layout:'auto',theme:'dark',show_device_details:true,lock_readings_right:false}}
+    static getStubConfig() {return {type:'custom:uninus-greenhouse-fan-card',entry_id:'',name:'Greenhouse fans',items:[],layout:'auto',theme:'dark',show_device_details:true,lock_readings_right:false,readings_layout:'split'}}
     setConfig(config) {const next=clean(config);if(this.config && JSON.stringify(this.config)===JSON.stringify(next))return;this.invalidate();this.config=next;this.load();this.render()}
     connectedCallback(){this.detached=false;if(!this._poll){this._poll=setInterval(()=>this.load({background:true}),5000)}if(this.config && this.hass)this.load()}
     disconnectedCallback(){clearInterval(this._poll);this._poll=null;super.disconnectedCallback()}
@@ -271,7 +295,7 @@
       const p=this.snapshot?.policy || {}, items=this.config.items;
       const tOn=p.temperature_on ?? '—',tOff=p.temperature_off ?? '—',hOn=p.humidity_on ?? '—',hOff=p.humidity_off ?? '—';
       const count=items.filter(x=>state(this.hass,this.output(x))?.state==='on').length;
-      const html=`${styles}<section class="card layout-${this.config.layout}${this.config.lock_readings_right?' readings-right':''}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header><div class="group-status">${this.groupMarkup()}</div><div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body">${this.thresholdMarkup()}</div></details><div class="fans">${items.map((x,i)=>this.renderFan(x,i)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
+      const html=`${styles}<section class="card layout-${this.config.layout}${this.config.lock_readings_right?' readings-right readings-'+this.config.readings_layout:''}"><header class="header"><div><div class="brand">UNiNUS / GREENHOUSE</div><h2>${escape(this.config.name||'Greenhouse fans')}</h2>${subtitleMarkup(this.config,this.hass)}</div><span class="summary">● ${count} / ${items.length} 台開啟</span></header><div class="group-status">${this.groupMarkup()}</div><div class="workspace"><details class="global" ${this.expanded?'open':''}><summary aria-label="全域溫濕度上下限，展開或收折"><span class="limits"><span class="limit-pair"><span>溫度 ↑／↓</span><b>${escape(tOn)} / ${escape(tOff)} °C</b></span><span class="limit-pair"><span>濕度 ↑／↓</span><b>${escape(hOn)} / ${escape(hOff)} %</b></span></span><button class="mode-switch" data-control-mode="${this.snapshot?.control_mode==='manual'?'auto':'manual'}" role="switch" aria-label="全域自動控制" aria-busy="${!!this.operation}" aria-checked="${!!this.snapshot && this.snapshot.control_mode!=='manual'}" ${this.canSetControlMode()?'':'disabled'} title="套用此群組所有裝置（含未顯示裝置）；切換不會立即開關輸出"><span>自動</span><span class="switch-track" aria-hidden="true"></span></button></summary><div class="global-body">${this.thresholdMarkup()}</div></details><div class="fans">${items.map((x,i)=>this.renderFan(x,i)).join('')}</div></div><p class="card-note">動畫依開關回報 · 手動保持至恢復自動</p></section>`;
       if(retain){
         // Patch live regions only: focused/dragged range nodes never detach.
         const next=document.createElement('template');next.innerHTML=html;
@@ -324,7 +348,23 @@
         this.config.subtitle_entity=typeof e.detail.value==='string'?e.detail.value:'';notify(this);this.updateSubtitlePreview();return;
       }
       if(target.dataset.group){this.selectGroup(target.value);return}
-      if(target.dataset.config){const field=target.dataset.config;if(!['name','theme','layout','subtitle_mode','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details','lock_readings_right'].includes(field))return;this.config[field]=['subtitle_unit','show_device_details','lock_readings_right'].includes(field)?target.checked===true:target.value;if(['name','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details','lock_readings_right'].includes(field)){notify(this);this.updateSubtitlePreview()}else this.emit();return}
+      if(target.dataset.config){
+        const field=target.dataset.config;
+        if(!['name','theme','layout','subtitle_mode','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details','lock_readings_right','readings_layout'].includes(field))return;
+        if(['lock_readings_right','readings_layout'].includes(field)){
+          // Native checkbox/select send input and change; accept one authoritative change.
+          if(e.type!=='change' || (target.isConnected===false))return;
+          this.config[field]=field==='lock_readings_right'?target.checked===true:clean({readings_layout:target.value}).readings_layout;
+          notify(this);
+          // Patch only this dependent field: preserve native focus/picker/scroll and handlers.
+          const container=this.shadowRoot.querySelector('[data-readings-options]');
+          // Markup contains only fixed labels and strict allowlisted enum options.
+          if(container && field==='lock_readings_right')container.innerHTML=this.readingsLayoutField();
+          return;
+        }
+        this.config[field]=['subtitle_unit','show_device_details'].includes(field)?target.checked===true:target.value;
+        if(['name','subtitle_text','subtitle_attribute','subtitle_unit','show_device_details'].includes(field)){notify(this);this.updateSubtitlePreview()}else this.emit();return;
+      }
       if(target.dataset.field)this.setItemField(Number(target.dataset.index),target.dataset.field,target.value);
     }
     handleClick(e){const button=e.target.closest?.('button[data-action]');if(!button)return;const index=Number(button.dataset.index);switch(button.dataset.action){case 'add':this.config.items.push({fan_entity:'',name:''});this.emit();break;case 'remove':this.removeItem(index);break;case 'up':this.moveItem(index,-1);break;case 'down':this.moveItem(index,1);break;case 'refresh':this.load();break}}
@@ -340,15 +380,18 @@
     deviceDetailsField(){
       return `<div class="field wide"><label class="details-option"><input type="checkbox" data-config="show_device_details" ${this.config.show_device_details?'checked':''}>顯示控制模式與診斷訊息</label><small>套用所有風扇；關閉只隱藏控制模式、條件計時與診斷訊息，不影響控制。</small></div>`;
     }
+    readingsLayoutField(){
+      return this.config.lock_readings_right?`<label>風扇與溫濕度排版<select aria-label="風扇與溫濕度排版" data-config="readings_layout">${[['compact','A 緊密置中'],['columns','B 三區橫排'],['split','C 左右各半']].map(([value,label])=>`<option value="${value}" ${this.config.readings_layout===value?'selected':''}>${label}</option>`).join('')}</select></label>`:'';
+    }
     readingsRightField(){
-      return `<div class="field wide"><label class="details-option"><input type="checkbox" data-config="lock_readings_right" ${this.config.lock_readings_right?'checked':''}>溫濕度固定在風扇右側</label><small>套用所有風扇；窄卡片仍左右並排以降低高度，不影響控制。</small></div>`;
+      return `<div class="field wide"><label class="details-option"><input type="checkbox" data-config="lock_readings_right" ${this.config.lock_readings_right?'checked':''}>溫濕度固定在風扇右側</label><small>套用所有風扇；窄卡片仍左右並排以降低高度，不影響控制。</small><div data-readings-options>${this.readingsLayoutField()}</div></div>`;
     }
     subtitleFields(){
       return `<div class="field wide"><label>副標題來源</label><select data-config="subtitle_mode" aria-label="副標題來源"><option value="text" ${this.config.subtitle_mode==='text'?'selected':''}>文字</option><option value="entity" ${this.config.subtitle_mode==='entity'?'selected':''}>實體</option></select></div>${this.config.subtitle_mode==='text'?`<div class="field wide"><label>副標題文字（留空隱藏）</label><input aria-label="副標題文字" data-config="subtitle_text" value="${escape(this.config.subtitle_text)}"></div>`:`<div class="field wide"><label>副標題實體（留空隱藏）</label><ha-entity-picker data-config="subtitle_entity"></ha-entity-picker></div><div class="field"><label>屬性（選填；留空顯示狀態）</label><input aria-label="副標題屬性" data-config="subtitle_attribute" value="${escape(this.config.subtitle_attribute)}"></div><div class="field"><label><input type="checkbox" data-config="subtitle_unit" ${this.config.subtitle_unit?'checked':''}>顯示狀態單位</label></div>`}<div class="field wide"><label>副標題預覽</label><p class="sub" data-subtitle-preview></p><small>僅顯示單一實體狀態或屬性；不支援模板。Dashboard Save 儲存，Cancel 不會修改後端。</small></div>`;
     }
     render(force=false){
       if(!this.config)return;
-      if(!force && this.shadowRoot.activeElement?.matches?.('input,ha-entity-picker')){this.updateSubtitlePreview();return}
+      if(!force && this.shadowRoot.activeElement?.matches?.('input,select,ha-entity-picker')){this.updateSubtitlePreview();return}
       this.setAttribute?.('data-theme',this.config.theme);
       this.shadowRoot.innerHTML=`${styles}<section class="editor"><h2>風扇卡片設定</h2><p class="notice">裝置與感測來源：<a href="/config/integrations">設定 → 裝置與服務 → UNiNUS Greenhouse Fan → 設定</a>。此處只儲存顯示項目、順序、名稱與外觀。</p><div class="fields">${this.groupMarkup()}<div class="field wide"><label>卡片標題</label><input data-config="name" value="${escape(this.config.name)}"></div>${this.subtitleFields()}${this.deviceDetailsField()}${this.readingsRightField()}<div class="field"><label>主題</label><select data-config="theme"><option value="dark" ${this.config.theme==='dark'?'selected':''}>深夜石墨</option><option value="light" ${this.config.theme==='light'?'selected':''}>雲霧白</option></select></div><div class="field"><label>每列設備數</label><select data-config="layout"><option value="auto" ${this.config.layout==='auto'?'selected':''}>自動排列</option><option value="1" ${this.config.layout==='1'?'selected':''}>1 欄</option><option value="2" ${this.config.layout==='2'?'selected':''}>2 欄</option></select></div></div><button data-action="refresh">重新讀取裝置</button>${this.config.items.map((slot,i)=>this.renderItem(slot,i)).join('')}<div class="editor-actions"><button data-action="add">＋ 新增顯示項目</button></div><p>移除顯示項目不會刪除整合裝置，也不會控制風扇。</p></section>`;
       const picker=this.shadowRoot.querySelector('ha-entity-picker[data-config="subtitle_entity"]');

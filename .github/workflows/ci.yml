@@ -73,3 +73,4 @@ jobs:
           python tests/verify_readings_browser.py
           python tests/verify_icons_browser.py
           python tests/verify_integer_sliders_browser.py
+          python tests/verify_layouts_browser.py

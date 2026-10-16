@@ -33,7 +33,8 @@ with sync_playwright() as p:
     enabled=page.evaluate('measure()')
     red={'baseline':baseline,'enabled':enabled,'build':page.evaluate("customElements.get('uninus-greenhouse-fan-card').buildVersion")}
     (OUT/'readings-first-probe.json').write_text(json.dumps(red,indent=2),encoding='utf-8')
-    assert all(f['status']['x']>=f['scene']['right']-1 for f in enabled['fans']),red
+    assert page.evaluate('card.config.readings_layout')=='split'
+    assert all(abs(f['scene']['x']+f['scene']['width']/2-(f['hero']['x']+f['hero']['width']/4))<=1 and abs(f['status']['x']+f['status']['width']/2-(f['hero']['x']+3*f['hero']['width']/4))<=1 for f in enabled['fans']),red
     measurements=[]
     for theme in ('light','dark'):
         for layout in ('auto','1','2'):
@@ -52,6 +53,9 @@ with sync_playwright() as p:
                             assert all('-20.0' in x and '100.0' in x and '°C' in x and '%' in x for x in text[:3]),text
                             assert text[3].count('—')==2,text
                             for f in r['fans']:
+                                assert abs(f['scene']['x']+f['scene']['width']/2-(f['hero']['x']+f['hero']['width']/4))<=1,(width,layout,f)
+                                assert abs(f['status']['x']+f['status']['width']/2-(f['hero']['x']+3*f['hero']['width']/4))<=1,(width,layout,f)
+                                assert abs(f['scene']['y']+f['scene']['height']/2-f['status']['y']-f['status']['height']/2)<=1,f
                                 assert f['status']['x']>=f['scene']['right']-1,(width,layout,f)
                                 assert f['status']['y']<f['scene']['bottom'] and f['scene']['y']<f['status']['bottom'],f
                                 assert f['machine']['x']>=f['hero']['x']-1 and f['machine']['right']<=f['status']['x']+1,f

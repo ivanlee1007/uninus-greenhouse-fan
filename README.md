@@ -1,4 +1,27 @@
-# UNiNUS Greenhouse Fan 0.5.6
+# UNiNUS Greenhouse Fan 0.6.0
+
+## Fan and readings layout (0.6.0, card-only)
+
+The native card editor keeps **溫濕度固定在風扇右側**. When checked, **風扇與溫濕度排版** selects **A 緊密置中**, **B 三區橫排**, or **C 左右各半**, globally for every displayed device. Dashboard Save/reopen persists the choice; turning the checkbox off and on retains it. This is display configuration only: no helper, automation, policy or backend control writes.
+
+```yaml
+type: custom:uninus-greenhouse-fan-card
+entry_id: YOUR_GROUP_ENTRY_ID
+layout: "2"                    # auto / "1" / "2"; fixed two stays two
+lock_readings_right: true       # literal YAML boolean, not "true" or "false"
+readings_layout: split          # compact = A; columns = B; split = C
+items:
+  - device_id: YOUR_CONFIGURED_DEVICE_ID
+```
+
+Only the exact strings `compact`, `columns`, `split` are accepted. Missing, unknown and non-string `readings_layout` values normalize to **C / `split`**, including legacy configs with `lock_readings_right: true` and no enum. `lock_readings_right` enables only for literal boolean `true`; string `"false"` is never truthy. With the checkbox off (or omitted), the existing responsive layout is unchanged and the enum is retained but inactive. The stub config includes `lock_readings_right: false`, `readings_layout: split`; the editor emits both typed fields through `config-changed`.
+
+- **A / `compact`:** animation and stacked readings form one centered group with exactly **20 px** gap.
+- **B / `columns`:** three equal tracks for animation/temperature/humidity, 12 px gaps. Named card-container breakpoints (content width ≤440 px, or ≤630 px with fixed-two layout) switch to two equal halves with both readings stacked on the right. Each readout has its own definite-width inline-size container, so numeric fonts grow with that actual field—not the viewport or whole card. Temperature is bounded **13–36 px**, humidity **14–40 px**; labels and units stay smaller. Wide/narrow composition follows approved B; the authorized difference is adaptive type and associated readout/hero height, which can move lower controls vertically.
+- **C / `split`:** two equal tracks, zero gap, animation centered at 25% and stacked readings at 75%, vertically centered.
+
+The three `tests/fixtures/approved-readings-{a,b,c}.html` files are exact copies of the approved **external** 0.5.6 demos, frozen before production changes; provenance and SHA256 are adjacent. Existing approved threshold/button fixtures are unchanged. The tenth browser gate (`tests/verify_layouts_browser.py`) checks A/C whole-card/control rectangles, B composition/chrome, off-state baseline equivalence, the native editor, field-local font growth, overflow and per-layout refresh/drag identity. `docs/verification/0.6.0-layouts-red.json` and `0.6.0-adaptive-font-red.json` preserve actual RED results; `0.6.0-frontend.json` records actual suite counts, bundle hash, runtimes and a working-tree fingerprint. Historical 0.5.2/0.5.3/0.5.6 RED reports are retained. Verification uses isolated real browsers/native HA backends, not live HA or hosted CI. No deployment, restart or hardware action is part of this change.
+
 
 The four **expanded global-card threshold sliders** now adjust in whole **1 °C / 1 %** steps. Newly edited values display as integers without `.0`. Native `input_number`, Shared policy Options, service precision and sensor-reading formatting are unchanged.
 
@@ -14,7 +37,7 @@ The global native editor checkbox **溫濕度固定在風扇右側** applies to 
 lock_readings_right: true  # optional; only literal boolean true enables, default false
 ```
 
-Use unquoted YAML `true`/`false`; strings (`"true"`, `"false"`), numbers, null, arrays and objects do not enable it. This setting only changes display configuration, emits typed booleans, and makes no backend writes. Dashboard Save/reopen retains it. The opt-in `.readings-right` class overrides the legacy fixed-two narrow stacking, with hero-local container units scaling the complete animation group and bounded 13–21px readings. No whole-card overflow hiding is used. Verified card widths: **320, 390, 500, 630, 720, 1080 CSS px**, layouts auto/1/2, both themes and both details settings. **320px is the supported tested minimum**, not a promise of arbitrary sub-320px fixed-two fit; unusually long/unbounded numerical readings are not a supported fixed-two-width contract.
+Use unquoted YAML `true`/`false`; strings (`"true"`, `"false"`), numbers, null, arrays and objects do not enable it. This setting only changes display configuration, emits typed booleans, and makes no backend writes. Dashboard Save/reopen retains it. The opt-in `.readings-right` class overrides the legacy fixed-two narrow stacking. In 0.6.0 A/C keep hero-local animation sizing and bounded 13–21px readings; B uses the per-field adaptive fonts described above. Omitted `readings_layout` now selects C rather than the historical right-edge alignment. No whole-card overflow hiding is used. Verified card widths: **320, 390, 500, 630, 720, 1080 CSS px**, layouts auto/1/2, both themes and both details settings. **320px is the supported tested minimum**, not a promise of arbitrary sub-320px fixed-two fit; unusually long/unbounded numerical readings are not a supported fixed-two-width contract.
 
 `tests/verify_readings_browser.py` is the seventh browser gate. It checks actual reading/animation rectangles, full negative-temperature and 100.0% values/units and unavailable dashes, fixed-two columns and overflow, typed editor Save/reopen false→true→false, and enabled-mode node/focus/animation identity across three polls plus 18 hass updates. `docs/verification/0.5.3-readings-red.json` records the failing exact 0.5.2 baseline; `docs/verification/0.5.3-frontend.json` records actual full-gate results, measured height reductions, shipped hashes and the working-tree fingerprint. The editor test uses a synthetic Dashboard Save host, not live HA storage UI. Existing six browser gates, the unchanged approved-A fixture and both isolated actual HA runtime suites remain mandatory.
 
@@ -192,7 +215,7 @@ policy Save to atomically change four thresholds.
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.5.6` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.6.0` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
@@ -202,7 +225,7 @@ The policy strip stays above the grid. Automatic layout uses the card's own widt
 
 Disabled output diagnostics distinguish an absent entity from reported `unavailable`/invalid states and include the authoritative configured output ID/state and Settings guidance. `unknown` instead shows a warning: state unknown, explicit manual commands permitted, automatic paused until feedback. Its badge remains unknown and its blades neutral/stationary—not inferred off. Deleted stable selections explicitly require reselection in the card editor; stale YAML is never substituted. Manual gating already supports configured `fan.*`/`switch.*` outputs without sensors; regression fixtures include `switch.uss_p130_f5_relay0`. These synthetic tests do not establish that switch's live state or permissions.
 
-After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.5.6'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
+After updating resources, hard-refresh/reopen all dashboard tabs: a previously registered custom element cannot be replaced by merely fetching a newer JS file. Verify the **loaded** module in browser DevTools with `customElements.get('uninus-greenhouse-fan-card').buildVersion` (expected `'0.6.0'`); the editor class exposes the same marker. A served-file version alone does not prove the active browser element is current.
 
 ## Display-only subtitle (introduced in 0.3.1)
 

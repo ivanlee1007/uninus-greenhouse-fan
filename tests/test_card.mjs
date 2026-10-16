@@ -71,6 +71,33 @@ test('right readings opt-in accepts literal true only and editor round trips typ
   }
   assert.equal(calls.filter(x=>!x.type.endsWith('/get')&&!x.type.endsWith('/groups')).length,0);
 });
+test('A/B/C readings enum is allowlisted, migrated, safe and round trips while disabled', async () => {
+  const {Card,Editor}=setup();
+  assert.equal(Card.getStubConfig().readings_layout,'split');
+  for(const value of [undefined,null,false,true,0,1,'false','',[],{},'__proto__','split onclick="alert(1)']) {
+    const card=new Card();card.setConfig({...config,lock_readings_right:'false',readings_layout:value});
+    assert.equal(card.config.readings_layout,'split');assert.equal(card.config.lock_readings_right,false);
+    assert.doesNotMatch(card.shadowRoot.innerHTML,/onclick="alert/);
+    card.setConfig({...config,lock_readings_right:true,readings_layout:value});
+    assert.match(card.shadowRoot.innerHTML,/card layout-auto readings-right readings-split/);
+    const editor=new Editor();editor.setConfig({...config,lock_readings_right:true,readings_layout:value});
+    assert.equal(editor.config.readings_layout,'split');
+    assert.match(editor.readingsRightField(),/value="split" selected/);
+    editor.handleChange({type:'change',target:{dataset:{config:'readings_layout'},value}});
+    assert.equal(editor.events.at(-1).detail.config.readings_layout,'split');
+  }
+  for(const value of ['compact','columns','split']) {
+    const editor=new Editor();editor.setConfig({...config,lock_readings_right:true,readings_layout:value});
+    assert.match(editor.readingsRightField(),new RegExp('value="'+value+'" selected'));
+    editor.handleChange({type:'change',target:{dataset:{config:'readings_layout'},value}});
+    for(const checked of [false,true]) {
+      editor.handleChange({type:'change',target:{dataset:{config:'lock_readings_right'},checked}});
+      const saved=editor.events.at(-1).detail.config;
+      assert.equal(saved.readings_layout,value);assert.equal(saved.lock_readings_right,checked);
+      const reopened=new Editor();reopened.setConfig(saved);assert.equal(reopened.config.readings_layout,value);
+    }
+  }
+});
 const states = {
   'fan.a':{state:'on',attributes:{friendly_name:'Fan A'}},
   'fan.b':{state:'off',attributes:{}},
@@ -209,8 +236,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.5.6 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.5.6');assert.equal(Editor.buildVersion,'0.5.6');
+test('loaded custom elements expose readable 0.6.0 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.0');assert.equal(Editor.buildVersion,'0.6.0');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();
