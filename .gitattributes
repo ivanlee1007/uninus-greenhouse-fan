@@ -1,0 +1,4 @@
+# Preserve the exact approved demo bytes checked by provenance SHA-256.
+# Git's Windows CRLF -> LF normalization would invalidate the frozen references.
+# Allow the preserved CR at EOL while retaining standard whitespace checks.
+tests/fixtures/approved-readings-*.html -text whitespace=blank-at-eol,blank-at-eof,space-before-tab,cr-at-eol

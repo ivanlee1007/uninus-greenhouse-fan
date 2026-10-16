@@ -8,7 +8,7 @@
     "With step=1 the native range thumb/value snaps to a whole tick. The adjacent output, saved policy and untouched draft fields retain the exact legacy fraction until that particular control is edited; rendering, polls and Cancel never round or write it. Native input_number/Options/service precision and sensor reading formatting are unchanged.",
     "Editor checkbox clicks and Save/reopen use the actual custom editor in a synthetic Dashboard Save host, not the live HA dashboard storage dialog. Hosted CI is configured, not executed locally."
   ],
-  "head": "2d9af0b39ebffbffb359ce040250aa32b1a852a0",
+  "head": "4925ed34d13e674e413f0cdfea8dac57d271746c",
   "runtimes": {
     "legacy": {
       "executable": "C:\\Users\\ivanl\\.hermes\\cache\\scratch\\ha-greenhouse-venv\\Scripts\\python.exe",
@@ -392,9 +392,10 @@
   "js_sha256": "74ff1462fd4ba582334f6c7161fcd10b725936e8e1dd6ed088faa3f9c21c4531",
   "js_bytes": 55196,
   "approved_a_fixture_sha256": "406bc74ec7f0a73daaf9af0c56a977786909a70dc85fb17a7e6808d3bc9fecba",
-  "working_tree_content_fingerprint": "ce6dca624a77d4124dd96c990b641f351a448e50fae2bd5ee1ec6c94efa6d1d7",
+  "working_tree_content_fingerprint": "1aa89321ea484975e8da801257aebfdfe25b3aef7b882f46cb5cfe4e996a28b8",
   "fingerprint_definition": "SHA256 of canonical path-to-SHA256 mapping for git tracked + nonignored untracked files, excluding this report",
   "file_hashes": {
+    ".gitattributes": "a6f9aa4ef2180b93c424d624798376b84ea1ee89499227449752fc1ab4ce679a",
     ".github/workflows/ci.yml": "1ee36afead3370326833ca64acb927c6f5c4366981a04d7c685af280a6b3fc93",
     ".gitignore": "c09f987fb19ebe62fa9b59a6cfb22fe5ae8f48ecf446566d706fe1061937f17a",
     "README.md": "2941154e4e5d94750f0fbc88810e85fe8cc8b208a842c5538abf43637324af56",
@@ -782,7 +783,7 @@
     "errors": []
   },
   "passed": true,
-  "generated_at_utc": "2026-10-16T13:51:12.956707+00:00",
+  "generated_at_utc": "2026-10-16T13:59:34.604578+00:00",
   "node_version": "v18.6.0",
   "refresh_baseline_red": {
     "idle": {
