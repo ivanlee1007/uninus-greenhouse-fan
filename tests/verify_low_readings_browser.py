@@ -22,7 +22,7 @@ with sync_playwright() as p:
     }''')
     page.wait_for_function('card.snapshot && !card.loading')
     cases = 0
-    for theme, good, danger in [('dark', 'rgb(140, 219, 179)', 'rgb(255, 173, 165)'), ('light', 'rgb(22, 99, 61)', 'rgb(168, 50, 32)')]:
+    for theme, good, danger in [('dark', 'rgb(131, 237, 176)', 'rgb(255, 173, 165)'), ('light', 'rgb(0, 128, 68)', 'rgb(177, 44, 36)')]:
         for layout in (None, 'compact', 'columns', 'split'):
             page.evaluate('''a=>{card.setConfig({...card.config,theme:a[0],lock_readings_right:a[1]!==null,readings_layout:a[1]})}''', [theme, layout])
             page.wait_for_function('card.snapshot && !card.loading')
@@ -35,7 +35,7 @@ with sync_playwright() as p:
                         color = good if result['kind'] == 'low' else danger
                         assert result['color'] == result['unit'] == color, result
                         if result['kind'] == 'high':
-                            assert result['underline'] == 'underline', result
+                            assert result['underline'] == 'none', result
                 cases += 1
     assert page.evaluate("calls.every(m=>m.type.endsWith('/get') || m.type.endsWith('/groups'))")
     assert not errors, errors

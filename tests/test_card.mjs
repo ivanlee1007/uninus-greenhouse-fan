@@ -209,7 +209,7 @@ test('auto low readings are green per metric, strictly below saved lower limits'
   view=snapshot();await el.load();
   el.thresholdDraft={id:el.resolvedId,revision:0,values:{...view.policy,temperature_off:10,humidity_off:10}};
   assert.equal((el.renderFan(el.config.items[0]).match(/threshold-low/g)||[]).length,2,'Unsaved draft must not recolor readings');
-  assert.match(source,/\.live-line\.threshold-low strong,\.live-line\.threshold-low strong small\{color:var\(--good\)\}/);
+  assert.match(source,/\.live-line\.threshold-low strong small\{color:var\(--reading-low-ink\)\}/);
 });
 
 test('global mode waits for authoritative response and blocks resume under global manual', async () => {
@@ -268,8 +268,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.6.1 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.1');assert.equal(Editor.buildVersion,'0.6.1');
+test('loaded custom elements expose readable 0.6.2 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.2');assert.equal(Editor.buildVersion,'0.6.2');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

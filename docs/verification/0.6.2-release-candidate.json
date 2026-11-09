@@ -1,0 +1,73 @@
+{
+  "version": "0.6.2",
+  "scope": "Final versioned release candidate: isolated local tests only. This receipt does not claim hosted CI, publication or live HA deployment.",
+  "previous_implementation_receipt": "threshold-capsules-v2.json",
+  "approved_implementation_source_sha256": "fe53acac53f24e135866f8bb5a2fe4ac09a679467ce3433e4f2dc7aa2149c724",
+  "source_sha256": "4789d9f69b341fc0059f4b86e5fc6bf6b08fc9fd0602ed59e6c439b52764a0b1",
+  "publication_delta": "Version markers/cache version updated from 0.6.1 to 0.6.2; reviewed V2 styling unchanged.",
+  "offline_python_tests": 50,
+  "frontend_node_tests": 44,
+  "browser_suites": 12,
+  "suite_exit_codes": {
+    "offline": 0,
+    "node": 0,
+    "browser_card": 0,
+    "browser_control": 0,
+    "browser_subtitle": 0,
+    "browser_threshold": 0,
+    "browser_refresh": 0,
+    "browser_details": 0,
+    "browser_readings": 0,
+    "browser_icons": 0,
+    "browser_integer_sliders": 0,
+    "browser_layouts": 0,
+    "browser_low_readings": 0,
+    "browser_threshold_capsules": 0
+  },
+  "approved_demo_comparison": {
+    "passed": true,
+    "cases": [
+      {
+        "theme": "light",
+        "width": 360
+      },
+      {
+        "theme": "light",
+        "width": 420
+      },
+      {
+        "theme": "light",
+        "width": 760
+      },
+      {
+        "theme": "light",
+        "width": 1128
+      },
+      {
+        "theme": "dark",
+        "width": 360
+      },
+      {
+        "theme": "dark",
+        "width": 420
+      },
+      {
+        "theme": "dark",
+        "width": 760
+      },
+      {
+        "theme": "dark",
+        "width": 1128
+      }
+    ],
+    "approved_fixture_sha256": "669da04b73891cc3f63170753d6b057a17e78dbaf05cbf25521a514644d55ac8",
+    "source_sha256": "4789d9f69b341fc0059f4b86e5fc6bf6b08fc9fd0602ed59e6c439b52764a0b1",
+    "page_errors": [],
+    "scope": "Offline synthetic host; exact V2 numeric styles and <=1px card/control geometry; no live HA"
+  },
+  "notes": [
+    "Historical threshold-capsules-v2.json retains its original pre-publication source hash and local-only scope.",
+    "Final versioned candidate reran all offline suites, all twelve browser suites, syntax and whitespace checks.",
+    "Live Home Assistant deployment and restart remain unauthorized and were not performed."
+  ]
+}

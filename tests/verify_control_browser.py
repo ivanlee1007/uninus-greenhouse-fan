@@ -68,8 +68,8 @@ with sync_playwright() as p:
             assert [x['high'] for x in result]==expected,result
             for row,high in zip(result,expected):
                 if high:
-                    assert row['color']==('rgb(255, 173, 165)' if theme=='dark' else 'rgb(168, 50, 32)')
-                    assert row['underline']=='underline'
+                    assert row['color']==('rgb(255, 173, 165)' if theme=='dark' else 'rgb(177, 44, 36)')
+                    assert row['underline']=='none'
             colors.append({'theme':theme,'t':t,'h':h,'mode':mode,'global':global_mode,'result':result})
             if t is None:
                 page.evaluate("()=>{window.savedBinding=snap.bindings['fan.f1'];delete snap.bindings['fan.f1'];fakeHass.states['sensor.t1'].state='50';fakeHass.states['sensor.h1'].state='99';card.load()}")

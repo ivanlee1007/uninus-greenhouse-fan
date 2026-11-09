@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from playwright.sync_api import sync_playwright
+from approved_capsule_geometry import apply_capsule_geometry
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'tests/evidence'
 OUT.mkdir(exist_ok=True)
@@ -146,6 +147,8 @@ with sync_playwright() as p:
                     data=reference.evaluate('''()=>({config:card.config,states:fakeHass.states,snapshot:view})''')
                     actual.evaluate('install',dict(data,width=width,choice=choice))
                     actual.wait_for_function('card.snapshot && !card.loading')
+                    # Preserve legacy geometry contracts plus the approved V2-only style delta.
+                    apply_capsule_geometry(reference)
                     expected=reference.evaluate(geometry_js);received=actual.evaluate(geometry_js)
                     case={'choice':choice,'theme':theme,'width':width,'count':count}
                     if key in 'ac':
@@ -169,6 +172,7 @@ with sync_playwright() as p:
                         data=reference.evaluate('''()=>({config:card.config,states:fakeHass.states,snapshot:view})''')
                         actual.evaluate('install',dict(data,width=width,choice='columns'))
                         actual.wait_for_function('!card.loading')
+                        apply_capsule_geometry(reference)
                         old_geometry=reference.evaluate(geometry_js);off_geometry=actual.evaluate(geometry_js)
                         for selector in old_geometry:
                             assert len(old_geometry[selector])==len(off_geometry[selector]),(case,selector)

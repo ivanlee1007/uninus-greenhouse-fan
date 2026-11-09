@@ -3,6 +3,7 @@ from pathlib import Path
 import json
 import os
 from playwright.sync_api import sync_playwright
+from approved_capsule_geometry import apply_capsule_geometry
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / 'tests/evidence'
 OUT.mkdir(exist_ok=True)
@@ -140,6 +141,8 @@ with sync_playwright() as p:
                 page.evaluate('()=>{card.expanded=true;card.render()}')
                 demo.evaluate('args=>{const [width,theme,layout]=args;demo.card.style.width=width+"px";demo.card.setConfig({...demo.card.config,theme,layout});demo.card.hass=demo.hass}', [width,theme,layout])
                 demo.wait_for_function('demo.card.snapshot && !demo.card.loading')
+                # Only the approved V2 numeric styling is projected onto the frozen host.
+                apply_capsule_geometry(demo,'demo.card')
                 ac,bc=page.evaluate(composition),demo.evaluate(composition)
                 assert len(ac)==len(bc)==7
                 for a,b in zip(ac,bc):

@@ -1,8 +1,10 @@
-# UNiNUS Greenhouse Fan 0.6.1
+# UNiNUS Greenhouse Fan 0.6.2
 
 ## Reading threshold colors
 
-In automatic mode, each valid temperature/humidity reading above its saved upper limit remains red and underlined; readings strictly below their saved lower limit are green (including units). Values equal to a limit or inside the range retain normal styling. Like the existing high-limit indication, low-limit coloring is disabled during individual/global manual control. Unsaved threshold drafts do not affect colors. Both themes and all reading layouts are supported; fan-control behavior is unchanged.
+In automatic mode, each valid temperature/humidity reading above its saved upper limit uses a red numeric capsule with an ↑ symbol; readings strictly below their saved lower limit use a green capsule with a ↓ symbol (including units). Both states share the same rounded corners, border, padding and weight, without underlining. Arrows indicate the relationship to a threshold, not a measured trend. Values equal to a limit or inside the range retain normal styling. Like the existing high-limit indication, low-limit coloring is disabled during individual/global manual control. Unsaved threshold drafts do not affect colors. Both themes and all reading layouts are supported; fan-control behavior is unchanged.
+
+The capsule styling follows the approved V2 demo, retained byte-for-byte in `tests/fixtures/approved-threshold-capsules-v2.html`. `tests/verify_threshold_capsules_browser.py` compares its numeric styles and card/control geometry with the shipped renderer at 360/420/760/1128 px in both themes. Historical A/B/C and threshold fixtures remain unchanged; their geometry hosts apply only the approved styling delta. At extremely narrow fixed-two widths, capsule side padding contracts symmetrically; with right-readings disabled, temperature/humidity stack rather than clipping their values or units.
 
 ## Fan and readings layout (0.6.0, card-only)
 
@@ -219,7 +221,7 @@ policy Save to atomically change four thresholds.
 
 ## Dashboard: display-only editor
 
-1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.6.1` manually as a module.
+1. Add the **UNiNUS Greenhouse Fan** card. The integration serves/registers its bundled module in storage-resource mode. YAML-managed resources need `/uninus_greenhouse_fan/card.js?v=0.6.2` manually as a module.
 2. A unique loaded group resolves automatically. With several groups choose the friendly **control group** dropdown **in the card editor only**, then Save. The displayed runtime card never shows a group selector. Missing, multiple, unloaded and query-failed groups show noninteractive guidance to edit the card or open Settings; saved missing/unloaded references are never silently switched.
 3. Add display items and select from **only this group's configured devices**. Configured offline devices are included and marked offline. No arbitrary output picker is offered for device selection (the display-only subtitle picker below accepts any domain). If none exists, follow the integration settings link and Add device, then refresh.
 4. Set display names/order, card title and subtitle, theme and automatic/one/two-column layout. Dashboard **Save** persists only view settings. There are **no sensor fields, Apply, Discard, revision fields or backend writes** in this editor. Removing a display item neither deletes the device nor actuates it.
