@@ -180,6 +180,38 @@ test('auto threshold colors use separate finite native readings and strict bound
   view={...snapshot(),bindings:{}};await el.load();assert.doesNotMatch(el.renderFan(el.config.items[0]),/threshold-high/);
 });
 
+test('auto low readings are green per metric, strictly below saved lower limits', async () => {
+  const {Card}=setup(),el=new Card();el.setConfig(config);let view=snapshot();
+  el.hass=groupHass(groups,()=>view);await flush();
+  for(const [t,h,mode,global,expected] of [
+    [24,59,'auto','auto',['threshold-low','threshold-low']],
+    [25,60,'auto','auto',['','']],
+    [24.999,60,'auto','auto',['threshold-low','']],
+    [25,59.999,'auto','auto',['','threshold-low']],
+    [24,81,'auto','auto',['threshold-low','threshold-high']],
+    [31,59,'auto','auto',['threshold-high','threshold-low']],
+    [24,59,'on','auto',['','']],
+    [24,59,'off','auto',['','']],
+    [24,59,'auto','manual',['','']],
+    ['unavailable',59,'auto','auto',['unavailable','threshold-low']],
+    [null,'unknown','auto','auto',['unavailable','unavailable']],
+    [true,'-Infinity','auto','auto',['unavailable','unavailable']],
+  ]) {
+    view={...snapshot(),control_mode:global,runtime:{'fan.a':{mode}}};
+    el.hass={...el.hass,states:{...states,'sensor.t':{...states['sensor.t'],state:t},'sensor.h':{...states['sensor.h'],state:h}}};await el.load();
+    const classes=[...el.renderFan(el.config.items[0]).matchAll(/class="live-line ([^"]*)"/g)].map(m=>m[1]);
+    assert.deepEqual(classes,expected,JSON.stringify([t,h,mode,global]));
+  }
+  el.hass={...el.hass,states:{...states,'sensor.t':{...states['sensor.t'],state:24},'sensor.h':{...states['sensor.h'],state:59}}};
+  for(const extra of [{bindings:{}},{devices:[]},{policy:{...snapshot().policy,temperature_off:NaN,humidity_off:'60'}}]) {
+    view={...snapshot(),...extra};await el.load();assert.doesNotMatch(el.renderFan(el.config.items[0]),/threshold-low/);
+  }
+  view=snapshot();await el.load();
+  el.thresholdDraft={id:el.resolvedId,revision:0,values:{...view.policy,temperature_off:10,humidity_off:10}};
+  assert.equal((el.renderFan(el.config.items[0]).match(/threshold-low/g)||[]).length,2,'Unsaved draft must not recolor readings');
+  assert.match(source,/\.live-line\.threshold-low strong,\.live-line\.threshold-low strong small\{color:var\(--good\)\}/);
+});
+
 test('global mode waits for authoritative response and blocks resume under global manual', async () => {
   const {Card}=setup(), el=new Card();el.setConfig(config);let finish;
   el.hass=groupHass(groups,msg=>msg.type.endsWith('/set_control_mode')?new Promise(r=>finish=r):snapshot());await flush();
@@ -236,8 +268,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.6.0 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.0');assert.equal(Editor.buildVersion,'0.6.0');
+test('loaded custom elements expose readable 0.6.1 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.1');assert.equal(Editor.buildVersion,'0.6.1');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();
