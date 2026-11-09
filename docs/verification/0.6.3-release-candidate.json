@@ -1,0 +1,44 @@
+{
+  "version": "0.6.3",
+  "scope": "Final versioned local candidate only; hosted CI, publication and live deployment are not claimed by this receipt.",
+  "previous_local_receipt": "reading-controls-spacing.json",
+  "version_only_delta_from_tested_implementation": true,
+  "source_sha256": "6bd37c6c4d04ab98a3b4cf5ea1e39bad341a13d563dedf752b89c8a32d2458f6",
+  "offline_python_tests": 50,
+  "frontend_node_tests": 44,
+  "browser_suites": 13,
+  "suite_exit_codes": {
+    "offline": 0,
+    "node": 0,
+    "browser_card": 0,
+    "browser_control": 0,
+    "browser_subtitle": 0,
+    "browser_threshold": 0,
+    "browser_refresh": 0,
+    "browser_details": 0,
+    "browser_readings": 0,
+    "browser_icons": 0,
+    "browser_integer_sliders": 0,
+    "browser_layouts": 0,
+    "browser_low_readings": 0,
+    "browser_threshold_capsules": 0,
+    "browser_reading_spacing": 0
+  },
+  "spacing": {
+    "passed": true,
+    "matrix_cases": 240,
+    "hidden_details_hero_margin_px": 8,
+    "visible_details_hero_margin_px": 0,
+    "controls_bottom_aligned": true,
+    "buttons_min_height_px": 44,
+    "reading_transition_cases": 4,
+    "source_sha256": "6bd37c6c4d04ab98a3b4cf5ea1e39bad341a13d563dedf752b89c8a32d2458f6",
+    "page_errors": [],
+    "scope": "Offline actual renderer and synthetic HA state; no live configuration or device changes"
+  },
+  "notes": [
+    "Preserves approved red/green capsules and bottom-aligned controls.",
+    "Hidden diagnostics get 8px minimum readout/control spacing; visible diagnostics keep original spacing.",
+    "No live Home Assistant deployment, restart or actuation was performed."
+  ]
+}

@@ -1,4 +1,4 @@
-/* UNiNUS Greenhouse Fan 0.6.2 — Integration-owned devices; display-only editor. */
+/* UNiNUS Greenhouse Fan 0.6.3 — Integration-owned devices; display-only editor. */
 (() => {
   'use strict';
   const PREFIX = 'uninus_greenhouse_fan/';
@@ -88,6 +88,8 @@
     .live-line.threshold-high strong::before{content:'↑';font-size:.7em;margin-right:4px;vertical-align:.08em;font-weight:800}
     /* Tiny fixed-two tiles retain full values/units, never clipped text. */
     @container uninus-fan-card (max-width:370px){.layout-2 .live-line strong{padding-inline:1px}.layout-2 .live-line strong::before{margin-right:2px}}@container uninus-fan-card (max-width:330px){.layout-2:not(.readings-right) .live-status{grid-template-columns:1fr;gap:4px}}
+    /* Hidden diagnostics must not leave readout borders touching controls. */
+    .device-hero:has(+ .controls){margin-bottom:8px}
     .controls button{display:inline-flex;align-items:center;justify-content:center;gap:6px}.controls .action-icon{width:16px;height:16px;flex:0 0 16px;vertical-align:middle}.controls button span{white-space:nowrap}
   </style>`;
   const machine = `<div class="scene" aria-hidden="true"><div class="fan-machine"><div class="fan-wheel"><div class="rotor"><svg viewBox="0 0 100 100"><g><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(90 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(180 50 50)"/><path d="M48 48 C15 50 9 23 28 13 C43 6 58 21 48 48Z" transform="rotate(270 50 50)"/></g></svg></div><div class="hub"></div></div></div></div>`;
@@ -113,7 +115,7 @@
   };
 
   class GroupClient extends HTMLElement {
-    static get buildVersion(){return '0.6.2'}
+    static get buildVersion(){return '0.6.3'}
     constructor() {
       super();this.groups=null;this.resolvedId='';this.epoch=0;this.request=0;this.loading=false;this.detached=false;this.error='';
     }

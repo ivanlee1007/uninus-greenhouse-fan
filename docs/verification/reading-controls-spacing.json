@@ -1,0 +1,40 @@
+{
+  "scope": "Local CSS-only repair; no commit/push/release/live HA changes",
+  "implementation": "8px margin below device-hero only when immediately followed by controls (diagnostics hidden); margin-top:auto and existing sizes remain unchanged",
+  "source_sha256": "189e34b14ccf2647f862a5f1c6ba30b331eedfbdd98e0d03c16a2b195e55f7a8",
+  "red": "Same reported configuration reproduced a 0px gap before repair; unchanged new browser regression passed after repair.",
+  "spacing_verification": {
+    "passed": true,
+    "matrix_cases": 240,
+    "hidden_details_hero_margin_px": 8,
+    "visible_details_hero_margin_px": 0,
+    "controls_bottom_aligned": true,
+    "buttons_min_height_px": 44,
+    "reading_transition_cases": 4,
+    "source_sha256": "189e34b14ccf2647f862a5f1c6ba30b331eedfbdd98e0d03c16a2b195e55f7a8",
+    "page_errors": [],
+    "scope": "Offline actual renderer and synthetic HA state; no live configuration or device changes"
+  },
+  "offline_python_tests": 50,
+  "node_tests": 44,
+  "browser_suites": 13,
+  "exit_codes": {
+    "offline": 0,
+    "node": 0,
+    "browser_card": 0,
+    "browser_control": 0,
+    "browser_subtitle": 0,
+    "browser_threshold": 0,
+    "browser_refresh": 0,
+    "browser_details": 0,
+    "browser_readings": 0,
+    "browser_icons": 0,
+    "browser_integer_sliders": 0,
+    "browser_layouts": 0,
+    "browser_low_readings": 0,
+    "browser_threshold_capsules": 0,
+    "browser_reading_spacing": 0
+  },
+  "reference_migration": "Frozen references remain unchanged; historical geometry host gets only the user-approved 8px hidden-diagnostics correction, preserving all geometry tolerances and assertions.",
+  "integrity": "Both shipped copies match; removing only the two added CSS lines exactly reproduces released source. No control or threshold logic change."
+}

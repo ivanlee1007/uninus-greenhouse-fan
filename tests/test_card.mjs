@@ -268,8 +268,8 @@ test('unregistered literal YAML output displays safely but cannot dispatch', asy
   assert.match(el.shadowRoot.innerHTML,/禁止控制/);await el.manual('fan.a','on');assert.equal(writes,0);
 });
 
-test('loaded custom elements expose readable 0.6.2 build marker', () => {
-  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.2');assert.equal(Editor.buildVersion,'0.6.2');
+test('loaded custom elements expose readable 0.6.3 build marker', () => {
+  const {Card,Editor}=setup();assert.equal(Card.buildVersion,'0.6.3');assert.equal(Editor.buildVersion,'0.6.3');
 });
 test('subtitle text round trips editor config immediately and explicit empty hides legacy tagline', async () => {
   const {Card,Editor}=setup(),el=new Editor();el.setConfig(config);el.hass=groupHass();await flush();

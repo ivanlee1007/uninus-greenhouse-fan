@@ -16,6 +16,9 @@ def apply_capsule_geometry(page, card_expression='card'):
     assert hashlib.sha256(FIXTURE.read_bytes()).hexdigest() == APPROVED_SHA256
     text = FIXTURE.read_text(encoding='utf-8')
     css = text.split('const demoStyle=`<style data-demo-design>\n', 1)[1].split('\n</style>`;', 1)[0]
+    # Approved follow-up fix: reserve 8px only when diagnostics are hidden.
+    # Apply to the historical reference only; the candidate supplies its own CSS.
+    css += '\n.device-hero:has(+ .controls){margin-bottom:8px}'
     # Only the fixture adapter's explicit card expression is executable input.
     page.evaluate('''({css,responsive})=>{const c=''' + card_expression + r''';
       const root=c.shadowRoot;root.querySelectorAll('[data-v2-geometry]').forEach(n=>n.remove());
